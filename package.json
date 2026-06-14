@@ -1,0 +1,14 @@
+{
+  "name": "oas-truth",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "vp check --fix",
+    "test": "vp test",
+    "coverage": "vp test --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.8",
+    "vite-plus": "^0.1.24"
+  }
+}

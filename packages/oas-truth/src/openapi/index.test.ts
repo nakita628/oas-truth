@@ -59,6 +59,21 @@ describe('parseOpenAPI', () => {
       expect(typeof result.error).toBe('string')
     }
   })
+
+  it.concurrent('returns the bundled document as value (faithful round-trip)', async () => {
+    const doc = {
+      openapi: '3.0.0',
+      info: { title: 'T', version: '1.0.0' },
+      paths: {
+        '/items': {
+          get: { responses: { '200': { description: 'ok' } } },
+        },
+      },
+    }
+    const result = await parseOpenAPI(doc as unknown as string)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.value).toStrictEqual(doc)
+  })
 })
 
 // TypeSpec test
@@ -184,5 +199,29 @@ model Error {
     fs.writeFileSync(TSP_TEST_FILE, tmpTsp)
     const result = await parseOpenAPI(TSP_TEST_FILE)
     expect(result.ok).toBe(false)
+  })
+
+  it('resolves the first document of a @versioned namespace', { timeout: 30000 }, async () => {
+    const tmpTsp = `import "@typespec/http";
+import "@typespec/versioning";
+
+using Http;
+using Versioning;
+
+@service(#{ title: "Versioned" })
+@versioned(Versions)
+namespace VersionedService;
+
+enum Versions {
+  v1,
+  v2,
+}
+
+@get op read(): string;
+`
+    fs.writeFileSync(TSP_TEST_FILE, tmpTsp)
+    const result = await parseOpenAPI(TSP_TEST_FILE)
+    if (!result.ok) console.error('versioning error:', result.error)
+    expect(result.ok).toBe(true)
   })
 })

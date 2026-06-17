@@ -74,6 +74,18 @@ describe('parseOpenAPI', () => {
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.value).toStrictEqual(doc)
   })
+
+  it.concurrent('folds an unresolvable URL into err instead of throwing', async () => {
+    const result = await parseOpenAPI('http://example.invalid/openapi.json')
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(typeof result.error).toBe('string')
+  })
+
+  it.concurrent('rejects an internal-address URL (swagger-parser safe resolver)', async () => {
+    const result = await parseOpenAPI('http://127.0.0.1:1/openapi.json')
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(typeof result.error).toBe('string')
+  })
 })
 
 // TypeSpec test

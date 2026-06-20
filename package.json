@@ -1,5 +1,5 @@
 {
-  "name": "oas-truth",
+  "name": "oas-truth-monorepo",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,5 +10,6 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.8",
     "vite-plus": "^0.1.24"
-  }
+  },
+  "packageManager": "pnpm@11.8.0"
 }

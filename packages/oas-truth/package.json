@@ -1,6 +1,7 @@
 {
   "name": "oas-truth",
   "version": "0.0.1",
+  "description": "Read OpenAPI / TypeSpec as the single source of truth and get a typed OpenAPI document back.",
   "files": [
     "dist"
   ],

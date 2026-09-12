@@ -28,6 +28,31 @@ if (result.ok) {
 - TypeSpec files (`.tsp`) are compiled with `@typespec/compiler` and then bundled
 - Returns `{ ok: true, value } | { ok: false, error }` (never throws)
 
+## Schema declarations
+
+Every Components key has a `make<Kind>Code` builder. `makeSchemasCode` is the
+one for `components.schemas`: it returns the adapter import and one
+`export const <Name>Schema=...` declaration per entry, in dependency-first
+order. `$ref` cycles stay references — lazy wrappers for Zod, Valibot and
+Effect, a `scope` container for Arktype, `Type.Cyclic` for TypeBox — and keys
+that fold to the same identifier (`user` / `User`) get a numeric suffix.
+
+Hosts that write one file per schema use `makeSchemaDeclarations`, which
+returns `{ name, varName, fileName, code }` per entry (no import line).
+
+```ts
+import { makeAdapter, makeSchemasCode } from 'oas-truth'
+
+const code = makeSchemasCode(doc.components ?? {}, makeAdapter('zod'), {
+  exportTypes: true,
+})
+```
+
+`parseOpenAPI` never throws; the builders have nothing that can fail. Options
+cover the exported type name (`User` vs `UserSchema`), `x-readonly` on object
+and array nodes, and a `wrapDeclaration` hook for host-specific ref
+registration.
+
 ## License
 
 [MIT](https://github.com/nakita628/oas-truth/blob/main/LICENSE)

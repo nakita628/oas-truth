@@ -116,6 +116,48 @@ describe('wrapSchema', () => {
   })
 })
 
+describe('cycle helpers', () => {
+  it('zod wraps a lazy reference and annotates TS7022', () => {
+    const adapter = makeAdapter('zod')
+    expect(adapter.wrapLazy?.('NodeSchema')).toBe('z.lazy(() => NodeSchema)')
+    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('z.ZodType<NodeType>')
+  })
+
+  it('valibot wraps a lazy reference and annotates TS7022', () => {
+    const adapter = makeAdapter('valibot')
+    expect(adapter.wrapLazy?.('NodeSchema')).toBe('v.lazy(() => NodeSchema)')
+    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('v.GenericSchema<NodeType>')
+  })
+
+  it('effect strips suspend and re-wraps it for a cycle', () => {
+    const adapter = makeAdapter('effect')
+    expect(
+      adapter.toExpression({
+        type: 'array',
+        items: { $ref: '#/components/schemas/User' },
+      }),
+    ).toBe('Schema.Array(UserSchema)')
+    expect(adapter.wrapLazy?.('NodeSchema')).toBe('Schema.suspend(() => NodeSchema)')
+    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Codec<any>')
+  })
+
+  it('arktype extracts a scope container and aliases externals', () => {
+    const adapter = makeAdapter('arktype')
+    expect(
+      adapter.renderCyclic?.(
+        'ASchema',
+        'const types = scope({ASchema:{"b?":"BSchema"}}).export()\n\nexport const ASchema = types.ASchema',
+        ['TagSchema'],
+      ),
+    ).toBe('scope({TagSchema:TagSchema,ASchema:{"b?":"BSchema"}}).export().ASchema')
+  })
+
+  it('typebox has no lazy wrapper (cycles use Type.Cyclic)', () => {
+    expect(makeAdapter('typebox').wrapLazy).toBe(undefined)
+    expect(makeAdapter('typebox').renderCyclic).toBe(undefined)
+  })
+})
+
 describe('toExpression coerces path/query params', () => {
   it('adds z.coerce for an integer query param', () => {
     expect(makeAdapter('zod').toExpression({ type: 'integer' }, 'query')).toBe(

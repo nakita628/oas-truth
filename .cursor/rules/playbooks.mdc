@@ -53,8 +53,8 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 
 ## Bump TypeSpec
 
-1. Move every `@typespec/*` package in `packages/oas-truth/package.json` together (Renovate
-   groups them), then `pnpm install`.
+1. Move every `@typespec/*` package in `packages/oas-truth/package.json` together, to the exact
+   versions of one TypeSpec release (Renovate groups them), then `pnpm install`.
 2. `pnpm test` runs the TypeSpec cases in `src/openapi/index.test.ts`; a compile failure there is
    usually a new diagnostic in the test sources, not a bug in `parseOpenAPI`.
 3. Keep the `peerDependencies` range covering the new version.

@@ -21,7 +21,7 @@
       "minimumReleaseAge": "7 days"
     },
     {
-      "description": "TypeSpec ships every @typespec/* package in one release and the packages require each other's version as peers, so they move in one PR: majors are not split from minors / patches, nor from each other.",
+      "description": "TypeSpec ships every @typespec/* package in one release and the packages require each other's version as peers, so they move in one PR: majors are not split from minors / patches, nor from each other. The devDependencies are exact (including @typespec/openapi, the peer @typespec/openapi3 would otherwise pull in unseen), so lock file maintenance cannot move one of them ahead of the rest; the peerDependencies ranges are widened in the same PR. The group is never automerged: a group automerges only when every member does, and the 0.x members never do.",
       "matchPackageNames": ["@typespec/**"],
       "groupName": "typespec",
       "separateMajorMinor": false,

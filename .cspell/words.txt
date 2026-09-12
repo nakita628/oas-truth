@@ -1,6 +1,8 @@
 apidevtools
 arktype
 artipacked
+automerged
+automerges
 cidrv
 hekireki
 injectively

@@ -76,9 +76,19 @@ its comments explain every choice.
   `devDependencies`.
 - A `peerDependencies` range must include the version in `devDependencies`, which is the one the
   tests prove. Widening it to a new major is a change to test against, not a formality.
-- Renovate (`renovate.json`) proposes updates weekly after a 7-day release age. Every
-  `@typespec/*` package moves in one PR, majors included: TypeSpec releases them together and
-  they require each other as peers.
+- Renovate (`renovate.json`) proposes updates weekly after a 7-day release age, and pins
+  devDependencies (`:pinDevDependencies` in `config:best-practices`).
+- **TypeSpec moves as one release set.** Every `@typespec/*` package is updated in one PR, majors
+  included, because TypeSpec releases them together and they require each other as peers:
+  - the `@typespec/*` devDependencies are exact, so lock file maintenance (automerged weekly)
+    cannot move one of them ahead of the rest. That includes `@typespec/openapi`, which
+    `@typespec/openapi3` needs as a peer: left implicit, it would be auto-installed and float;
+  - a TypeSpec package the tests need is declared in `devDependencies` at the release set's exact
+    version, never left for pnpm to auto-install as a peer;
+  - the `peerDependencies` ranges are widened in that same PR on a major, which the review has to
+    accept deliberately;
+  - the PR is never automerged: Renovate automerges a group only when every member would be,
+    and the `0.x` members (`rest`, `versioning`) never are.
 
 ## The published package
 

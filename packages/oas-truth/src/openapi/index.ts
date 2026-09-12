@@ -19,8 +19,8 @@ export async function parseOpenAPI(input: string) {
       }
       const [record] = await getOpenAPI3(program)
       const tsp = 'document' in record ? record.document : record.versions[0].document
-      // getOpenAPI3 already returns a JS object; swagger-parser's overloads do not list that type.
-      const openAPI = (await SwaggerParser.bundle(tsp as unknown as BaseOpenAPI)) as OpenAPI
+      // TypeSpec's document is a JS object; swagger-parser's overloads do not list that type.
+      const openAPI = (await SwaggerParser.bundle(tsp as never)) as OpenAPI
       return { ok: true, value: openAPI } as const
     }
     const openAPI = (await SwaggerParser.bundle(input)) as OpenAPI
@@ -30,9 +30,7 @@ export async function parseOpenAPI(input: string) {
   }
 }
 
-type BaseOpenAPI = Awaited<ReturnType<typeof SwaggerParser.bundle>>
-
-export type OpenAPI = BaseOpenAPI & {
+export type OpenAPI = {
   readonly openapi?: string
   readonly $self?: string
   readonly info?: {
@@ -54,7 +52,7 @@ export type OpenAPI = BaseOpenAPI & {
   }
   readonly jsonSchemaDialect?: string
   readonly servers?: readonly Server[]
-  readonly paths: PathItem
+  readonly paths: OpenAPIPaths
   readonly webhooks?: {
     readonly [k: string]: PathItem
   }
@@ -69,8 +67,6 @@ export type OpenAPI = BaseOpenAPI & {
     readonly kind?: string
   }[]
   readonly externalDocs?: ExternalDocs
-} & {
-  paths: OpenAPIPaths
 }
 
 export type Components = {
@@ -148,7 +144,7 @@ type OAuthFlow = {
 }
 
 export type OpenAPIPaths = {
-  readonly [P in keyof NonNullable<BaseOpenAPI['paths']>]: PathItem
+  readonly [k: string]: PathItem
 }
 
 export type Type =

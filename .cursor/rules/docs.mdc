@@ -11,9 +11,10 @@ Three linters split the work and never overlap: **markdownlint** owns the docume
 `pnpm fix` autofixes markdownlint and textlint.
 
 `packages/oas-truth/README.md` is the user documentation — installation, quick start, what
-`parseOpenAPI` does — and it is what npm shows. The root `README.md` is an identical copy for
-GitHub: edit both in the same change and keep them byte-for-byte equal. Links inside them are
-absolute `https://github.com/...` URLs, because a relative link breaks on npm.
+`parseOpenAPI` does — and it is what npm shows. The root `README.md` is a **symlink** to it, so
+GitHub shows the same file. Edit the package copy; never replace the symlink with a file (npm
+leaves symlinks out of the tarball, which is why the real file lives in the package). Links
+inside it are absolute `https://github.com/...` URLs, because a relative link breaks on npm.
 
 ## Structure (markdownlint)
 

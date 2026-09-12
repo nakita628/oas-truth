@@ -18,7 +18,7 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
    written: names through `toIdentifierPascalCase`, values through `valueToCode`, inline schemas
    through `makeSchemaReplacements` and the adapter.
 4. Export it from `src/index.ts` and add it to `src/index.test.ts`.
-5. Document it in `README.md` (both copies).
+5. Document it in `packages/oas-truth/README.md`.
 
 ## Support another validator library
 

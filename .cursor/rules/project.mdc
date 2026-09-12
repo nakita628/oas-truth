@@ -60,8 +60,8 @@ all be green** — the Test workflow's steps, in its order. One failure means no
 ran part of it, say which part.
 
 - A behavior change ships with a test that fails before it and passes after.
-- A change to the public API or to what it returns updates `README.md` in the same change (see the
-  docs rule).
+- A change to the public API or to what it returns updates `packages/oas-truth/README.md` in the
+  same change (the root `README.md` is a symlink to it; see the docs rule).
 - Report results as they are. Never call a task complete while hiding a failing command, and
   never make a check pass by weakening it.
 

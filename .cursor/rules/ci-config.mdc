@@ -92,7 +92,9 @@ its comments explain every choice.
 
 ## The published package
 
-- `files: ["dist"]`, plus the `README.md` npm always includes. `dist` is never committed.
+- `files: ["dist"]`, plus the `README.md` npm always includes — the real file in
+  `packages/oas-truth`, since the root one is a symlink and npm leaves symlinks out. `dist` is
+  never committed.
 - There are no lifecycle scripts: `npm publish` does not build, so the release workflow's publish
   job runs `vp run oas-truth#build` right before it.
 - `exports` has one subpath, `.`, with `types` (`dist/index.d.ts`) and `import`

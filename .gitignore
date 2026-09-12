@@ -1,2 +1,30 @@
-.DS_Store
+# Dependencies
 node_modules
+.pnpm-store
+
+# Build output. dist is produced by `vp pack` in CI right before publishing, so it is never
+# committed.
+dist
+*.tsbuildinfo
+
+# Work files the TypeSpec tests write under packages/oas-truth (src/openapi/index.test.ts).
+tmp
+tmp-*
+
+# Logs
+*.log
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+
+# Local Claude Code settings (the shared .claude/settings.json stays committable)
+.claude/settings.local.json

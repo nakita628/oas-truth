@@ -1,11 +1,26 @@
 {
   "name": "oas-truth",
   "version": "0.0.2",
-  "description": "Read OpenAPI / TypeSpec as the single source of truth and get a typed OpenAPI document back.",
+  "description": "oas-truth is a parser from OpenAPI and TypeSpec to a typed OpenAPI document",
+  "keywords": [
+    "openapi",
+    "typespec"
+  ],
+  "homepage": "https://github.com/nakita628/oas-truth",
+  "bugs": {
+    "url": "https://github.com/nakita628/oas-truth/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nakita628/oas-truth.git",
+    "directory": "packages/oas-truth"
+  },
   "files": [
     "dist"
   ],
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -13,24 +28,27 @@
     }
   },
   "scripts": {
-    "build": "tsdown"
+    "build": "vp pack",
+    "check": "vp check",
+    "fix": "vp check --fix",
+    "test": "vp test"
   },
   "dependencies": {
-    "schema-to-library": "^0.3.5"
+    "schema-to-library": "^0.4.0"
   },
   "devDependencies": {
-    "@apidevtools/swagger-parser": "^12.1.0",
-    "@types/node": "^25.9.3",
-    "@typespec/compiler": "^1.13.0",
-    "@typespec/http": "^1.13.0",
-    "@typespec/openapi3": "^1.13.0",
-    "@typespec/rest": "^0.83.0",
-    "@typespec/versioning": "^0.83.0",
-    "tsdown": "^0.22.2",
-    "typescript": "^6.0.3"
+    "@apidevtools/swagger-parser": "^13.0.0",
+    "@types/node": "^26.5.1",
+    "@typespec/compiler": "1.16.0",
+    "@typespec/http": "1.16.0",
+    "@typespec/openapi": "1.16.0",
+    "@typespec/openapi3": "1.16.0",
+    "@typespec/rest": "0.86.0",
+    "@typespec/versioning": "0.86.0",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "@apidevtools/swagger-parser": ">=12.0.0 <13.0.0",
+    "@apidevtools/swagger-parser": ">=12.0.0 <14.0.0",
     "@typespec/compiler": ">=1.11.0 <2.0.0",
     "@typespec/openapi3": ">=1.11.0 <2.0.0"
   }

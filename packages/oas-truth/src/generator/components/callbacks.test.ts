@@ -64,10 +64,10 @@ describe('makeCallbacksCode', () => {
   })
 
   it('returns an empty string when callbacks is missing', () => {
-    expect(makeCallbacksCode({} as Components, zod, false)).toBe('')
+    expect(makeCallbacksCode({}, zod, false)).toBe('')
   })
 
   it('returns an empty string when callbacks is empty', () => {
-    expect(makeCallbacksCode({ callbacks: {} } as Components, zod, false)).toBe('')
+    expect(makeCallbacksCode({ callbacks: {} }, zod, false)).toBe('')
   })
 })

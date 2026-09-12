@@ -69,10 +69,10 @@ describe('makePathItemsCode', () => {
   })
 
   it('returns an empty string when pathItems is missing', () => {
-    expect(makePathItemsCode({} as Components, zod, false)).toBe('')
+    expect(makePathItemsCode({}, zod, false)).toBe('')
   })
 
   it('returns an empty string when pathItems is empty', () => {
-    expect(makePathItemsCode({ pathItems: {} } as Components, zod, false)).toBe('')
+    expect(makePathItemsCode({ pathItems: {} }, zod, false)).toBe('')
   })
 })

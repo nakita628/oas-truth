@@ -72,10 +72,10 @@ describe('makeHeadersCode', () => {
   })
 
   it('returns an empty string when headers is missing', () => {
-    expect(makeHeadersCode({} as Components, zod)).toBe('')
+    expect(makeHeadersCode({}, zod)).toBe('')
   })
 
   it('returns an empty string when headers is empty', () => {
-    expect(makeHeadersCode({ headers: {} } as Components, zod)).toBe('')
+    expect(makeHeadersCode({ headers: {} }, zod)).toBe('')
   })
 })

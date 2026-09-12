@@ -54,10 +54,7 @@ describe('parseOpenAPI', () => {
 
   it.concurrent('should return err for a completely invalid input', async () => {
     const result = await parseOpenAPI('not yaml nor json')
-    expect(result.ok).toBe(false)
-    if (!result.ok) {
-      expect(typeof result.error).toBe('string')
-    }
+    expect(result).toStrictEqual({ ok: false, error: expect.any(String) })
   })
 
   it.concurrent('returns the bundled document as value (faithful round-trip)', async () => {
@@ -71,20 +68,17 @@ describe('parseOpenAPI', () => {
       },
     }
     const result = await parseOpenAPI(doc as unknown as string)
-    expect(result.ok).toBe(true)
-    if (result.ok) expect(result.value).toStrictEqual(doc)
+    expect(result).toStrictEqual({ ok: true, value: doc })
   })
 
   it.concurrent('folds an unresolvable URL into err instead of throwing', async () => {
     const result = await parseOpenAPI('http://example.invalid/openapi.json')
-    expect(result.ok).toBe(false)
-    if (!result.ok) expect(typeof result.error).toBe('string')
+    expect(result).toStrictEqual({ ok: false, error: expect.any(String) })
   })
 
   it.concurrent('rejects an internal-address URL (swagger-parser safe resolver)', async () => {
     const result = await parseOpenAPI('http://127.0.0.1:1/openapi.json')
-    expect(result.ok).toBe(false)
-    if (!result.ok) expect(typeof result.error).toBe('string')
+    expect(result).toStrictEqual({ ok: false, error: expect.any(String) })
   })
 })
 
@@ -104,7 +98,7 @@ describe('parseOpenAPI TypeSpec', () => {
     fs.rmSync(TSP_TEST_FILE, { force: true })
     fs.rmSync(TSP_TEST_SUBDIR, { recursive: true, force: true })
   })
-  it('typeSpecToOpenAPI not Error', { timeout: 30000 }, async () => {
+  it('typeSpecToOpenAPI not Error', { timeout: 30_000 }, async () => {
     const tmpTsp = `import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
@@ -150,13 +144,11 @@ model Error {
 `
     fs.writeFileSync(TSP_TEST_FILE, tmpTsp)
     const result = await parseOpenAPI(TSP_TEST_FILE)
-    if (!result.ok) {
-      console.error('TypeSpec error:', result.error)
-    }
-    expect(result.ok).toBe(true)
+    // Matching the whole result prints the compiler's message when the case fails.
+    expect(result).toMatchObject({ ok: true })
   })
 
-  it('typeSpecToOpenAPI dir not Error', { timeout: 30000 }, async () => {
+  it('typeSpecToOpenAPI dir not Error', { timeout: 30_000 }, async () => {
     const tmpTsp = `import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
@@ -206,14 +198,14 @@ model Error {
     expect(result.ok).toBe(true)
   })
 
-  it('typeSpecToOpenAPI Error', { timeout: 10000 }, async () => {
+  it('typeSpecToOpenAPI Error', { timeout: 10_000 }, async () => {
     const tmpTsp = `import "@typespec`
     fs.writeFileSync(TSP_TEST_FILE, tmpTsp)
     const result = await parseOpenAPI(TSP_TEST_FILE)
     expect(result.ok).toBe(false)
   })
 
-  it('resolves the first document of a @versioned namespace', { timeout: 30000 }, async () => {
+  it('resolves the first document of a @versioned namespace', { timeout: 30_000 }, async () => {
     const tmpTsp = `import "@typespec/http";
 import "@typespec/versioning";
 
@@ -233,7 +225,6 @@ enum Versions {
 `
     fs.writeFileSync(TSP_TEST_FILE, tmpTsp)
     const result = await parseOpenAPI(TSP_TEST_FILE)
-    if (!result.ok) console.error('versioning error:', result.error)
-    expect(result.ok).toBe(true)
+    expect(result).toMatchObject({ ok: true })
   })
 })

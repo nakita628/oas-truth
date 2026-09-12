@@ -95,7 +95,7 @@ describe('toExpression for a complex object schema (per library)', () => {
   })
   it('effect', () => {
     expect(makeAdapter('effect').toExpression(schema)).toBe(
-      'Schema.Struct({id:Schema.Number.pipe(Schema.int()),name:Schema.optional(Schema.String)})',
+      'Schema.Struct({id:Schema.Number.check(Schema.isInt()),name:Schema.optional(Schema.String)})',
     )
   })
 })

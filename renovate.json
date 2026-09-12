@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":separateMultipleMajorReleases",
+    "security:openssf-scorecard"
+  ],
+  "timezone": "Asia/Tokyo",
+  "schedule": ["* * * * 6"],
+  "dependencyDashboardAutoclose": true,
+  "osvVulnerabilityAlerts": true,
+  "platformAutomerge": false,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["* * * * 6"]
+  },
+  "packageRules": [
+    {
+      "matchDatasources": ["npm", "github-actions"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "TypeSpec ships every @typespec/* package in one release and the packages require each other's version as peers, so they move in one PR: majors are not split from minors / patches, nor from each other. The devDependencies are exact (including @typespec/openapi, the peer @typespec/openapi3 would otherwise pull in unseen), so lock file maintenance cannot move one of them ahead of the rest; the peerDependencies ranges are widened in the same PR. The group is never automerged: a group automerges only when every member does, and the 0.x members never do.",
+      "matchPackageNames": ["@typespec/**"],
+      "groupName": "typespec",
+      "separateMajorMinor": false,
+      "separateMultipleMajor": false
+    },
+    {
+      "matchUpdateTypes": ["pin", "pinDigest"],
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": false
+    }
+  ]
+}

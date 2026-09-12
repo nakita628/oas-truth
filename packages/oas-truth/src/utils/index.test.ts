@@ -1,3 +1,5 @@
+// `Cafue9` is `café` with its non-ASCII code point encoded, the identifier under test.
+// cspell:ignore Cafue
 import { describe, expect, it } from 'vite-plus/test'
 
 import {

@@ -35,10 +35,10 @@ describe('makeSecuritySchemesCode', () => {
   })
 
   it('returns an empty string when securitySchemes is missing', () => {
-    expect(makeSecuritySchemesCode({} as Components, false)).toBe('')
+    expect(makeSecuritySchemesCode({}, false)).toBe('')
   })
 
   it('returns an empty string when securitySchemes is empty', () => {
-    expect(makeSecuritySchemesCode({ securitySchemes: {} } as Components, false)).toBe('')
+    expect(makeSecuritySchemesCode({ securitySchemes: {} }, false)).toBe('')
   })
 })

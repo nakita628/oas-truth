@@ -30,10 +30,10 @@ describe('makeExamplesCode', () => {
   })
 
   it('returns an empty string when examples is missing', () => {
-    expect(makeExamplesCode({} as Components, false)).toBe('')
+    expect(makeExamplesCode({}, false)).toBe('')
   })
 
   it('returns an empty string when examples is empty', () => {
-    expect(makeExamplesCode({ examples: {} } as Components, false)).toBe('')
+    expect(makeExamplesCode({ examples: {} }, false)).toBe('')
   })
 })

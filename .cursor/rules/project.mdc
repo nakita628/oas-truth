@@ -1,0 +1,107 @@
+---
+description: Repository map, commands, invariants and the definition of done (always applied)
+alwaysApply: true
+---
+
+# oas-truth — how this repository is run
+
+Reads OpenAPI (`.json` / `.yaml`) or TypeSpec (`.tsp`) as the single source of truth and returns
+a typed `OpenAPI` document, plus the component code builders (headers, parameters, responses,
+request bodies, callbacks, path items, examples, links, security schemes) that turn its
+`components` into validator code for Zod, Valibot, ArkType, TypeBox or Effect Schema. Published
+to npm as `oas-truth`. Code generators build on it, so a change to what it returns or emits
+reaches every one of them. Built with vite-plus (`vp pack`, `vp check`, `vp test`), installed
+with pnpm.
+
+The config files are the source of truth: when an instruction contradicts one, quote the config
+and ask before changing it.
+
+Everything committed is written in **English** — code, comments, TSDoc, Markdown, commit
+messages, workflow comments. textlint and cspell assume it. Test data may be in any language.
+
+## Layout
+
+```text
+packages/oas-truth/           the published package (the only npm artifact)
+  src/                        implementation; see the architecture rule for the layering
+  src/index.ts                the public API: everything users can import is re-exported here
+  vite.config.ts              pack (build), test and lint for the package — the lint comments
+                              are the design
+  tsconfig.json               NodeNext, strict, exactOptionalPropertyTypes; tests are excluded
+vite.config.ts                shared formatting style (printWidth 100, single quotes, no semicolons)
+lint/actionlint.mjs           runs actionlint (the npm WebAssembly build) over .github/workflows
+.github/workflows/test.yaml   CI (Test): build, test, `vp run check`
+.github/workflows/lint.yaml   CI (Lint): the repository linters, zizmor included
+.github/workflows/release.yaml  after Test on main: tag, npm publish, GitHub release
+```
+
+## Commands
+
+Run these from the repository root.
+
+| Goal | Command |
+| --- | --- |
+| Install dependencies | `pnpm install --frozen-lockfile` |
+| Build `dist` | `vp run oas-truth#build` |
+| Unit tests | `pnpm test` |
+| One test file | `pnpm -F oas-truth test src/<path>.test.ts` |
+| Format check, lint and type check of the package, then the repository linters | `pnpm check` |
+| Autofix formatting, oxlint, markdownlint and textlint | `pnpm fix` |
+| Repository linters (markdownlint, textlint, cspell, secretlint, actionlint, zizmor) | `pnpm lint` |
+
+- `pnpm check` does not run the tests; `pnpm test` does. CI runs both.
+- zizmor is not an npm package. `pnpm lint` skips it with a note when it is not on `PATH`
+  (`pipx install zizmor`); the Lint workflow installs it and fails without it.
+
+## Definition of done
+
+Before reporting a task finished, **`vp run oas-truth#build`, `pnpm test` and `pnpm check` must
+all be green** — the Test workflow's steps, in its order. One failure means not done. If you only
+ran part of it, say which part.
+
+- A behavior change ships with a test that fails before it and passes after.
+- A change to the public API or to what it returns updates `packages/oas-truth/README.md` in the
+  same change (the root `README.md` is a symlink to it; see the docs rule).
+- Report results as they are. Never call a task complete while hiding a failing command, and
+  never make a check pass by weakening it.
+
+## Invariants
+
+- **Never relax a linter to get a change through.** Do not set a rule to `'off'` in `rules`, do
+  not lower `categories`, do not drop `denyWarnings`, do not add an `ignorePatterns` entry to hide
+  a finding. If a rule genuinely does not fit, say so and ask.
+- **Suppressions live next to the code, naming the rule and the reason:**
+  `// oxlint-disable-next-line rule-name -- reason`, or the reason on the line above. Never
+  disable a whole file. `reportUnusedDisableDirectives: 'deny'` is on, so a suppression that
+  stopped firing must go.
+- **No `TODO` / `FIXME`.** `no-warning-comments` rejects them in source, textlint's `no-todo` in
+  docs. Parked work belongs in the report.
+- **`parseOpenAPI` never throws.** It returns `{ ok: true, value } | { ok: false, error }`, with a
+  message the caller can show as-is. Keep every new failure path inside that result.
+- **The code builders are pure**: data in, a string of source code out. No filesystem, no
+  network, no global state.
+- **Never hand-edit generated files:** `pnpm-lock.yaml` (let `pnpm install` write it), `dist/`,
+  and the TypeSpec tests' `tmp-spec.tsp` / `tmp/` work files.
+- **Never bump `version` in `packages/oas-truth/package.json`** unless the task is a release that
+  was asked for: a new version reaching `main` is what publishes it. Never `npm publish` or push a
+  `v*` tag by hand — `.github/workflows/release.yaml` tags, publishes and releases, from one
+  commit.
+
+## Working order
+
+1. Read the rules in force for the files you are about to touch (`lint.rules` and
+   `lint.overrides` in `packages/oas-truth/vite.config.ts`, and the matching
+   `.cursor/rules/*.mdc`).
+2. Implement it the way the surrounding code is written. Do not introduce a second idiom.
+3. `pnpm fix`, then the definition of done.
+4. Commit and push (see Git policy).
+5. In the final report state what changed, which commands verified it, and anything left out.
+
+## Git policy
+
+- Work on a branch and open a pull request to `main`; `main` is what releases. Never force-push
+  and never rewrite pushed history.
+- One logical change per commit. The subject is `type(scope): summary` in the imperative, no
+  trailing period — `type` is one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`,
+  `ci`, `chore`. The body explains why. A version bump is its own commit.
+- Do not commit generated output, secrets or local tooling files.

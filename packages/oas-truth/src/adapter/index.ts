@@ -46,29 +46,36 @@ function extractExpr(code: string, stripRefs: (expr: string) => string = (s) => 
     .filter((line) => !line.startsWith('import '))
     .join('\n')
     .trim()
-  const match = joined.match(/^export const \w+ = (.+)$/s)
+  const match = joined.match(/^export const \w+ = (.+)$/su)
   const expr = match?.[1]
-  if (expr !== undefined) return stripRefs(expr.replace(/;?\s*$/, ''))
+  if (expr !== undefined) return stripRefs(expr.replace(/;?\s*$/u, ''))
   return stripRefs(joined)
 }
 
+/** One factory per library; the mapped type makes a missing library a compile error. */
+const ADAPTERS: { readonly [K in SchemaLib]: () => ComponentAdapter } = {
+  zod: makeZodAdapter,
+  valibot: makeValibotAdapter,
+  arktype: makeArktypeAdapter,
+  typebox: makeTypeboxAdapter,
+  effect: makeEffectAdapter,
+}
+
 export function makeAdapter(lib: SchemaLib): ComponentAdapter {
-  switch (lib) {
-    case 'zod':
-      return makeZodAdapter()
-    case 'valibot':
-      return makeValibotAdapter()
-    case 'arktype':
-      return makeArktypeAdapter()
-    case 'typebox':
-      return makeTypeboxAdapter()
-    case 'effect':
-      return makeEffectAdapter()
-  }
+  return ADAPTERS[lib]()
+}
+
+/** Inline `z.lazy(() => XSchema)` back to the bare `XSchema` reference. */
+function stripZodLazy(code: string) {
+  return code.replaceAll(/z\.lazy\(\(\)\s*=>\s*(\w+Schema)\)/gu, '$1')
+}
+
+/** Inline `v.lazy(() => XSchema)` back to the bare `XSchema` reference. */
+function stripValibotLazy(code: string) {
+  return code.replaceAll(/v\.lazy\(\(\)\s*=>\s*(\w+Schema)\)/gu, '$1')
 }
 
 function makeZodAdapter(): ComponentAdapter {
-  const stripLazy = (code: string) => code.replace(/z\.lazy\(\(\)\s*=>\s*(\w+Schema)\)/g, '$1')
   return {
     toExpression(schema, paramIn) {
       return extractExpr(
@@ -78,7 +85,7 @@ function makeZodAdapter(): ComponentAdapter {
           readonly: false,
           ...(paramIn && { paramIn }),
         }),
-        stripLazy,
+        stripZodLazy,
       )
     },
     renderImport() {
@@ -91,7 +98,6 @@ function makeZodAdapter(): ComponentAdapter {
 }
 
 function makeValibotAdapter(): ComponentAdapter {
-  const stripLazy = (code: string) => code.replace(/v\.lazy\(\(\)\s*=>\s*(\w+Schema)\)/g, '$1')
   return {
     toExpression(schema, paramIn) {
       return extractExpr(
@@ -101,7 +107,7 @@ function makeValibotAdapter(): ComponentAdapter {
           readonly: false,
           ...(paramIn && { paramIn }),
         }),
-        stripLazy,
+        stripValibotLazy,
       )
     },
     renderImport() {

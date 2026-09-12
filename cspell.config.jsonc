@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  // Words specific to this project live in their own file so adding one is a one-line diff that
+  // never touches this config. `addWords: true` lets an editor's "add to dictionary" append to it.
+  "dictionaryDefinitions": [
+    { "name": "project-words", "path": "./.cspell/words.txt", "addWords": true },
+  ],
+  "dictionaries": ["project-words", "typescript", "node", "npm", "softwareTerms", "fullstack"],
+  // Everything git ignores is skipped, so node_modules, dist and the TypeSpec tests'
+  // tmp files fall out without being listed twice. The rest are checked-in files whose contents
+  // are not prose.
+  "useGitignore": true,
+  "ignorePaths": [".git/**", "pnpm-lock.yaml", ".cspell/words.txt"],
+  // URLs, base64 blobs and commit digests (the pinned action versions in .github/workflows) are
+  // the places where a "word" is not one.
+  "ignoreRegExpList": ["Urls", "Base64", "/\\b[0-9a-f]{40}\\b/g"],
+}

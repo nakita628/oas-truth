@@ -1,34 +1,20 @@
 import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
-  build: {
-    sourcemap: true,
-  },
-  test: {
-    include: ['packages/**/src/**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**'],
-    coverage: {
-      include: ['packages/oas-truth/src/**/*.ts'],
-      exclude: ['**/*.test.ts', '**/*.d.ts', '**/node_modules/**', '**/dist/**'],
-      reporter: ['text', 'text-summary'],
-    },
-  },
-  lint: {
-    ignorePatterns: ['**/dist/**', '**/fixtures/**'],
-    options: {
-      typeAware: true,
-      typeCheck: true,
-    },
-  },
+  // Single source of truth for formatting style. Vite+ merges this root config into every
+  // workspace config, so `packages/oas-truth` inherits these options and only declares what is
+  // specific to it (pack / test / lint).
+  //
+  // Do not add a broad `fmt.ignorePatterns` here: it is inherited too, and a root-relative pattern
+  // such as `packages/**` makes the workspaces' own `vp check` exclude every file.
   fmt: {
-    ignorePatterns: ['**/node_modules/**', '**/dist/**', '**/fixtures/**'],
     printWidth: 100,
     singleQuote: true,
     semi: false,
     sortPackageJson: true,
-    experimentalSortImports: {},
+    sortImports: {},
   },
   staged: {
-    '*.{js,ts,tsx}': 'vp check --fix',
+    '*.{js,mjs,ts}': 'vp check --fix',
   },
 })

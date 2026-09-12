@@ -1,7 +1,7 @@
 export function toPascalCase(str: string) {
   return str
-    .replace(/[^a-zA-Z0-9]+(.)/g, (_, c: string) => c.toUpperCase())
-    .replace(/^(.)/, (_, c: string) => c.toUpperCase())
+    .replaceAll(/[^a-zA-Z0-9]+(.)/gu, (_, c: string) => c.toUpperCase())
+    .replace(/^(.)/u, (_, c: string) => c.toUpperCase())
 }
 
 /**
@@ -24,7 +24,7 @@ function safeDecode(value: string) {
  */
 export function schemaRefToName(ref: string) {
   const parts = ref.split('/')
-  return safeDecode(parts[parts.length - 1] ?? '')
+  return safeDecode(parts.at(-1) ?? '')
 }
 
 /**
@@ -32,7 +32,9 @@ export function schemaRefToName(ref: string) {
  * normalization instead of collapsing every non-ASCII name to the same value.
  */
 function encodeNonAscii(name: string) {
-  return Array.from(name)
+  // Code points are the unit being encoded here (`codePointAt` below), not grapheme clusters.
+  // oxlint-disable-next-line typescript/no-misused-spread
+  return [...name]
     .map((ch) => {
       const cp = ch.codePointAt(0) ?? 0
       return cp > 0x7f ? `u${cp.toString(16)}` : ch
@@ -48,13 +50,13 @@ function encodeNonAscii(name: string) {
  */
 export function toIdentifierPascalCase(name: string) {
   const parts = encodeNonAscii(name)
-    .split(/[^a-zA-Z0-9]+/)
+    .split(/[^a-zA-Z0-9]+/u)
     .filter(Boolean)
   if (parts.length === 0) return 'Schema'
   const result = parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')
-  if (/^[0-9]/.test(result)) {
+  if (/^[0-9]/u.test(result)) {
     const prefixed = `_${result}`
-    return prefixed.replace(/([0-9])([a-z])/, (_, d, c: string) => `${d}${c.toUpperCase()}`)
+    return prefixed.replace(/([0-9])([a-z])/u, (_, d, c: string) => `${d}${c.toUpperCase()}`)
   }
   return result
 }
@@ -65,7 +67,7 @@ export function toIdentifierPascalCase(name: string) {
  * component schema. Shared by ref-resolver and schema-replacements.
  */
 export function makeSchemaVarName(ref: string) {
-  const match = ref.match(/^#\/components\/schemas\/(.+)$/)
+  const match = ref.match(/^#\/components\/schemas\/(.+)$/u)
   const name = match?.[1]
   if (name === undefined) return undefined
   return `${toIdentifierPascalCase(safeDecode(name))}Schema`
@@ -77,7 +79,7 @@ export function makeSchemaVarName(ref: string) {
  * keys (e.g. `X-Request-ID`) emit as valid TypeScript.
  */
 export function makeSafeKey(key: string) {
-  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key : JSON.stringify(key)
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(key) ? key : JSON.stringify(key)
 }
 
 /** Narrow an unknown value to a plain object (excludes arrays and null). */

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import {
-  type Components,
   makeAdapter,
   makeResponsesCode,
   makeSecuritySchemesCode,
@@ -9,6 +8,7 @@ import {
   toPascalCase,
   valueToCode,
 } from './index.js'
+import type { Components } from './index.js'
 
 describe('public API barrel', () => {
   it('re-exports parseOpenAPI as a function', () => {

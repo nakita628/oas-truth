@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "terminology": {
+      "defaultTerms": true,
+      "terms": [["Open ?API", "OpenAPI"], "TypeSpec"],
+      "exclude": ["readme(s)?", "re[- ]export(s|ing|ed)?"]
+    },
+    "@textlint-rule/no-unmatched-pair": true,
+    "no-todo": true
+  },
+  "filters": {
+    "comments": true
+  }
+}

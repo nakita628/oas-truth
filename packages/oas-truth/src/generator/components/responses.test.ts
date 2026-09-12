@@ -1,3 +1,5 @@
+// `Cafue9` is `café` with its non-ASCII code point encoded, the identifier under test.
+// cspell:ignore Cafue
 import { describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
@@ -124,11 +126,11 @@ describe('makeResponsesCode', () => {
   })
 
   it('returns an empty string when responses is missing', () => {
-    expect(makeResponsesCode({} as Components, zod, false)).toBe('')
+    expect(makeResponsesCode({}, zod, false)).toBe('')
   })
 
   it('returns an empty string when responses is empty', () => {
-    expect(makeResponsesCode({ responses: {} } as Components, zod, false)).toBe('')
+    expect(makeResponsesCode({ responses: {} }, zod, false)).toBe('')
   })
 
   it('returns an empty string when every response is a $ref', () => {

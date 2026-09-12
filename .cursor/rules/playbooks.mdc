@@ -1,0 +1,91 @@
+---
+description: Step-by-step playbooks for the recurring tasks here — adding a component builder, supporting a validator library, fixing generated output, bumping schema-to-library or TypeSpec, clearing a lint failure, adding a lint rule, and releasing. Read this when starting any of those.
+alwaysApply: false
+---
+
+# Playbooks
+
+Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pnpm test` and
+`pnpm check`, all green, then commit.
+
+## Add a component code builder
+
+1. Write the failing test first, next to the new builder
+   (`src/generator/components/<kind>.test.ts`), pinning the exact output for each validator
+   library it supports, plus the empty and missing cases (both return `''`).
+2. Add the model for the Components Object key to `src/openapi/index.ts` if it is not there.
+3. Implement `make<Kind>Code` in `src/generator/components/<kind>.ts` the way its siblings are
+   written: names through `toIdentifierPascalCase`, values through `valueToCode`, inline schemas
+   through `makeSchemaReplacements` and the adapter.
+4. Export it from `src/index.ts` and add it to `src/index.test.ts`.
+5. Document it in `packages/oas-truth/README.md`.
+
+## Support another validator library
+
+1. Check that schema-to-library emits it (`schema-to-library/<lib>`); oas-truth does not generate
+   validator code of its own.
+2. Add the name to `SchemaLib` in `src/adapter/index.ts`; the `ADAPTERS` map then fails to
+   compile until the adapter exists.
+3. Write `make<Lib>Adapter()`: `toExpression` through `extractExpr`, the import line, the
+   type-inference alias.
+4. Add its cases to `src/adapter/index.test.ts` and to every builder's test that covers each
+   library.
+
+## Fix generated output
+
+1. Reproduce it as a failing test at the smallest `components` fragment that shows it.
+2. Find the layer that owns the mistake — the model (`openapi/`), a name (`utils/`), the library
+   bridge (`adapter/`), value or schema rendering (`helper/`), or the builder
+   (`generator/components/`) — and fix it there, not downstream.
+3. If the mistake is in schema-to-library's output, fix it there and bump it here; do not patch
+   its output with string surgery beyond what `extractExpr` and the `strip*Lazy` helpers already
+   do.
+4. Check whether sibling builders or the other libraries have the same mistake.
+5. Say in the report that every consumer's output changes with it.
+
+## Bump schema-to-library
+
+1. Update the range in `packages/oas-truth/package.json`, then `pnpm install`.
+2. `pnpm test`. Every changed expectation is a change in what consumers generate: read each
+   difference, update it only when it is the upstream's intended output, and check that the
+   adapter's import line and type alias still match the library version it now targets.
+3. Name the upstream changes that moved the output in the commit body.
+
+## Bump TypeSpec
+
+1. Move every `@typespec/*` package in `packages/oas-truth/package.json` together, to the exact
+   versions of one TypeSpec release (Renovate groups them), then `pnpm install`.
+2. `pnpm test` runs the TypeSpec cases in `src/openapi/index.test.ts`; a compile failure there is
+   usually a new diagnostic in the test sources, not a bug in `parseOpenAPI`.
+3. Keep the `peerDependencies` range covering the new version.
+
+## Clear a lint failure
+
+1. Run the failing command and read the rule name in the message.
+2. Try `pnpm fix` first — formatting, import order, markdownlint and textlint are autofixable.
+3. Otherwise **change the code, not the rule.** The rules encode the design: no assertion means
+   narrow with a guard; a `no-restricted-imports` message means the dependency direction is
+   wrong; `prefer-each` means `it.each`.
+4. Only if the rule genuinely cannot hold, add
+   `// oxlint-disable-next-line rule-name -- reason` on that line, and say in the report that you
+   added a suppression and why.
+5. An unknown word is one line in `.cspell/words.txt` if it is a real project term, a file-local
+   `cspell:ignore` if it is test data, and a rename if it is an abbreviation or a typo.
+
+## Add a lint rule
+
+1. Check its category; correctness / suspicious / perf are already on.
+2. Add it to `lint.rules` in `packages/oas-truth/vite.config.ts` in its section, with the reason.
+3. Run `pnpm check` and fix every finding in the code.
+
+## Release (only when asked)
+
+1. Confirm `main` is green.
+2. Bump `version` in `packages/oas-truth/package.json` only (semver: a breaking change to the API
+   or to the emitted code is a minor bump while the version is `0.x`).
+3. Commit with the version as the subject, open the pull request, and merge it to `main` once
+   Test and Lint pass.
+4. Watch Test, then `release`: it tags `v<version>`, publishes to npm and creates the GitHub
+   release from that commit. Never publish or tag by hand.
+5. If a job fails, fix the cause and re-run the failed jobs. To fix a published release, bump
+   again — never reuse a version.

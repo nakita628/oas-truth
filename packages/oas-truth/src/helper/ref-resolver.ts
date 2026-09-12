@@ -37,7 +37,7 @@ function encodeValue(
     }
     seen.add(value)
     const entries = Object.entries(value).map(([k, v]) => {
-      const key = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : JSON.stringify(k)
+      const key = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/u.test(k) ? k : JSON.stringify(k)
       return `${key}:${encodeValue(v, codeReplacements, seen)}`
     })
     seen.delete(value)

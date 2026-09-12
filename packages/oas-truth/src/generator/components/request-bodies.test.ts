@@ -79,10 +79,10 @@ describe('makeRequestBodiesCode', () => {
   })
 
   it('returns an empty string when requestBodies is missing', () => {
-    expect(makeRequestBodiesCode({} as Components, zod, false)).toBe('')
+    expect(makeRequestBodiesCode({}, zod, false)).toBe('')
   })
 
   it('returns an empty string when requestBodies is empty', () => {
-    expect(makeRequestBodiesCode({ requestBodies: {} } as Components, zod, false)).toBe('')
+    expect(makeRequestBodiesCode({ requestBodies: {} }, zod, false)).toBe('')
   })
 })

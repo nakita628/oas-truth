@@ -28,10 +28,10 @@ describe('makeLinksCode', () => {
   })
 
   it('returns an empty string when links is missing', () => {
-    expect(makeLinksCode({} as Components, false)).toBe('')
+    expect(makeLinksCode({}, false)).toBe('')
   })
 
   it('returns an empty string when links is empty', () => {
-    expect(makeLinksCode({ links: {} } as Components, false)).toBe('')
+    expect(makeLinksCode({ links: {} }, false)).toBe('')
   })
 })

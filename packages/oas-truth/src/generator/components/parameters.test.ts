@@ -57,7 +57,7 @@ describe('makeParametersCode', () => {
       parameters: { Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersCode(components, effect, true)).toBe(
-      "import { Schema } from 'effect'\n\nexport const LimitParamsSchema=Schema.NumberFromString.pipe(Schema.int())\n\nexport type LimitParamsSchema=Schema.Schema.Type<typeof LimitParamsSchema>\n",
+      "import { Schema } from 'effect'\n\nexport const LimitParamsSchema=Schema.NumberFromString.check(Schema.isInt())\n\nexport type LimitParamsSchema=Schema.Schema.Type<typeof LimitParamsSchema>\n",
     )
   })
 
@@ -99,10 +99,10 @@ describe('makeParametersCode', () => {
   })
 
   it('returns an empty string when parameters is missing', () => {
-    expect(makeParametersCode({} as Components, zod)).toBe('')
+    expect(makeParametersCode({}, zod)).toBe('')
   })
 
   it('returns an empty string when parameters is empty', () => {
-    expect(makeParametersCode({ parameters: {} } as Components, zod)).toBe('')
+    expect(makeParametersCode({ parameters: {} }, zod)).toBe('')
   })
 })

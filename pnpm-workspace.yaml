@@ -1,2 +1,6 @@
 packages:
   - packages/*
+allowBuilds:
+  # Optional native accelerator pulled in through schema-to-library -> effect -> msgpackr; the JS
+  # fallback is what oas-truth uses, so its build script stays off.
+  msgpackr-extract: false

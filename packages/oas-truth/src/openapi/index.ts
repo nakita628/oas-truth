@@ -4,13 +4,16 @@ import SwaggerParser from '@apidevtools/swagger-parser'
 import { compile, NodeHost } from '@typespec/compiler'
 import { getOpenAPI3 } from '@typespec/openapi3'
 
+/** What `SwaggerParser.bundle` accepts: a path, or an already-parsed document. */
+type BundleInput = Parameters<typeof SwaggerParser.bundle>[0]
+
 export async function parseOpenAPI(input: string) {
   try {
     if (typeof input === 'string' && input.endsWith('.tsp')) {
       const program = await compile(NodeHost, path.resolve(input), {
         noEmit: true,
       })
-      if (program.diagnostics.length) {
+      if (program.diagnostics.length > 0) {
         const errors = program.diagnostics.map((d) => d.message).join('\n')
         return {
           ok: false,
@@ -19,13 +22,17 @@ export async function parseOpenAPI(input: string) {
       }
       const [record] = await getOpenAPI3(program)
       const tsp = 'document' in record ? record.document : record.versions[0].document
-      const openAPI = (await SwaggerParser.bundle(JSON.parse(JSON.stringify(tsp)))) as OpenAPI
+      // Not a clone: the round-trip is what strips `undefined` and non-JSON values from the
+      // TypeSpec document, which is what SwaggerParser expects — structuredClone preserves both.
+      // oxlint-disable-next-line unicorn/prefer-structured-clone
+      const document = JSON.parse(JSON.stringify(tsp)) as BundleInput
+      const openAPI = (await SwaggerParser.bundle(document)) as OpenAPI
       return { ok: true, value: openAPI } as const
     }
     const openAPI = (await SwaggerParser.bundle(input)) as OpenAPI
     return { ok: true, value: openAPI } as const
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) } as const
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) } as const
   }
 }
 

@@ -1,0 +1,22 @@
+{
+  // markdownlint owns the *structure* of the Markdown (headings, lists, tables, fences); textlint
+  // owns the prose and cspell the spelling, so the three never overlap.
+  //
+  // Every default rule is on. A rule that does not fit this repository is turned off here with the
+  // reason next to it, never left silently unset.
+  "config": {
+    "default": true,
+    // oxfmt lays the text out; line length and the table shape are its call, not this linter's.
+    "MD013": false,
+    // The same heading may repeat under different parents; only siblings are a real duplicate.
+    "MD024": { "siblings_only": true },
+    // Every fenced block declares a language so GitHub highlights it. The list is closed on
+    // purpose: `typescript` vs `ts` would otherwise split the highlighting between two spellings.
+    "MD040": {
+      "allowed_languages": ["ts", "js", "json", "jsonc", "yaml", "sh", "text", "diff", "tsp"],
+    },
+  },
+  "globs": ["**/*.md"],
+  // `gitignore: true` drops node_modules and dist, so this never drifts from .gitignore.
+  "gitignore": true,
+}

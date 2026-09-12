@@ -1,7 +1,6 @@
 apidevtools
 arktype
 artipacked
-Cafue
 cidrv
 hekireki
 injectively
@@ -14,7 +13,9 @@ prefault
 stringbool
 takibi
 textlint
+textlintrc
 typebox
 uuidv
 voidzero
+wakusei
 zizmor

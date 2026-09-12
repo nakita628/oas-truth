@@ -1,0 +1,59 @@
+---
+description: src layering, dependency direction, per-directory responsibilities and the public API
+globs: packages/oas-truth/src/**/*.ts
+alwaysApply: false
+---
+
+# Layering
+
+Dependencies run **one way**. The order is enforced by the `no-restricted-imports` overrides in
+`packages/oas-truth/vite.config.ts`, each carrying a message that says what the directory may
+import. The comment above `overrides` is the map:
+
+```text
+layer 0  utils  openapi         (leaves: nothing internal)
+layer 1  adapter   -> openapi
+layer 2  helper    -> adapter, openapi, utils
+layer 3  generator -> adapter, helper, openapi, utils
+         index.ts  -> the public barrel, re-exports from every layer
+```
+
+Wanting to reach an upper layer means the design is wrong — pass the value in as an argument, or
+move the shared code down a layer. A new edge is a change to that map and its override first,
+and to the code second. A new `src/` directory gets its override and a line in the map.
+
+## Responsibilities
+
+| Directory | Owns | Never does |
+| --- | --- | --- |
+| `openapi/` | the OpenAPI model types (`OpenAPI`, `Components`, `Schema`, ...) and `parseOpenAPI` (OpenAPI through swagger-parser's `bundle`, TypeSpec through `@typespec/compiler` then `bundle`) | generate code |
+| `utils/` | string and identifier helpers (`toIdentifierPascalCase`, `makeSafeKey`, `schemaRefToName`), `isRecord` | know about a validator library |
+| `adapter/` | `ComponentAdapter` and `makeAdapter(lib)`: one adapter per validator library over schema-to-library | know about a component kind |
+| `helper/` | `valueToCode` (a value as source, `$ref` → schema variable) and `makeSchemaReplacements` (inline schemas → validator expressions) | emit a whole component |
+| `generator/components/` | one `make<Kind>Code(components, ...)` per Components Object key: pure data in, source string out | touch the filesystem, format the output |
+
+## What the code builders return
+
+- A `make<Kind>Code` function returns `''` when its component kind is missing or empty, and
+  otherwise the adapter's import line, a blank line, then `export const <Name><Suffix>=<expr>`
+  declarations. Names come from `toIdentifierPascalCase`, so they match the declarations
+  schema-to-library emits for `components.schemas` (`UserSchema`).
+- The output is **not formatted**: `=` without spaces, `;` between declarations. Formatting is the
+  consumer's job; do not add a formatter here.
+- A `$ref` to `#/components/schemas/*` becomes the schema variable name, never an inline copy, so
+  cyclic schemas stay references.
+- `wrapSchema` on the adapter is the host's hook for every `schema:` slot. oas-truth never wraps
+  on its own; that keeps it framework-agnostic.
+
+## Public API
+
+What users can import is exactly what `src/index.ts` re-exports, built to `dist/index.js` /
+`dist/index.d.ts` (the single `.` subpath of `exports` in `packages/oas-truth/package.json`).
+
+- Adding an export is adding it to `src/index.ts`, with a case in `src/index.test.ts` that
+  imports it through the barrel.
+- Removing or renaming an export, changing a signature, or changing the code a builder emits is a
+  breaking change for every consumer (diamond, openapi-rest-contract, wakusei). Do not introduce
+  one on your own initiative — say what it would take and ask.
+- `@apidevtools/swagger-parser`, `@typespec/compiler` and `@typespec/openapi3` are peer
+  dependencies: the consumer installs them. `schema-to-library` is the one runtime dependency.

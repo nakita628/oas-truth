@@ -1,0 +1,60 @@
+---
+description: Test conventions for the vitest suite run by vite-plus
+globs: **/*.test.ts
+alwaysApply: false
+---
+
+# Tests
+
+Tests run on **vitest through vite-plus** and live next to what they cover
+(`src/generator/components/headers.test.ts`). The suite is `pnpm test`; one file is
+`pnpm -F oas-truth test src/<path>.test.ts`.
+
+## Shape
+
+- Import from `vite-plus/test`: `import { describe, expect, it } from 'vite-plus/test'`. The
+  oxlint `vitest` plugin reads it.
+- Group cases in a `describe` named after the function under test and write each case with `it`
+  (`vitest/consistent-test-it`). Titles describe the behavior in a sentence.
+- A table is **`it.each` / `describe.each`**, never a loop around `it` (`vitest/prefer-each`).
+- `toStrictEqual` over `toEqual`; an equality matcher over `toBe(true)` on a comparison.
+- `expect` only inside a test, never conditionally (`vitest/no-conditional-expect`). Assert the
+  whole result instead of branching on it: `expect(result).toStrictEqual({ ok: false, error:
+  expect.any(String) })`, or `toMatchObject({ ok: true })`, which prints the error when it fails.
+- `it.only`, `it.skip` and commented-out tests fail lint. `console` is banned here too.
+- Independent async cases may be `it.concurrent`.
+
+## Asserting generated code
+
+- A code builder's test pins the **exact output string** with `toBe(...)`, per validator library
+  the case covers. The string is the contract with the consumers; read every difference rather
+  than updating the expectation to match.
+- An expectation changes only when the output is meant to change: a deliberate fix here, or an
+  upstream change in schema-to-library (as its move to Effect v4 changed
+  `.pipe(Schema.int())` to `.check(Schema.isInt())`). Say which in the commit body.
+- Fixtures are OpenAPI fragments cast with `as unknown as Components`: the cast rules are off in
+  tests so a fixture can stay minimal.
+
+## What tests may do that `src` may not
+
+`*.test.ts` is exempt from the cast and `unsafe-*` rules, `init-declarations`,
+`no-empty-function` and the layering: `any`, type assertions, `let` assigned in a hook and
+cross-layer imports are fine when they spell the fixture out most clearly. Everything else in the
+TypeScript rule still applies. Test files sit outside `tsconfig.json`; the type-aware lint still
+reads them.
+
+## Working with the filesystem
+
+- The TypeSpec cases in `src/openapi/index.test.ts` write `tmp-spec.tsp` and `tmp/` under
+  `packages/oas-truth`, so the compiler resolves `@typespec/*` from the package's
+  `node_modules`. They clear them in `beforeEach` / `afterEach`; `.gitignore` covers both.
+- A case that compiles TypeSpec passes an explicit `{ timeout: 30_000 }`; the config's
+  `testTimeout` is 30 s for the same reason.
+- Network cases assert the failure is folded into `{ ok: false }`; they never depend on a
+  reachable host.
+
+## Coverage of behavior
+
+- A bug fix ships with a test that fails before it and passes after. When you add a guard, prove
+  the test catches its absence (remove the guard, watch it fail, restore it).
+- Test coverage is not collected; the exact-output tests are the measure.

@@ -53,7 +53,7 @@ What users can import is exactly what `src/index.ts` re-exports, built to `dist/
 - Adding an export is adding it to `src/index.ts`, with a case in `src/index.test.ts` that
   imports it through the barrel.
 - Removing or renaming an export, changing a signature, or changing the code a builder emits is a
-  breaking change for every consumer (diamond, openapi-rest-contract, wakusei). Do not introduce
-  one on your own initiative — say what it would take and ask.
+  breaking change for every consumer. Do not introduce one on your own initiative — say what it
+  would take and ask.
 - `@apidevtools/swagger-parser`, `@typespec/compiler` and `@typespec/openapi3` are peer
   dependencies: the consumer installs them. `schema-to-library` is the one runtime dependency.

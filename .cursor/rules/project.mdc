@@ -9,9 +9,9 @@ Reads OpenAPI (`.json` / `.yaml`) or TypeSpec (`.tsp`) as the single source of t
 a typed `OpenAPI` document, plus the component code builders (headers, parameters, responses,
 request bodies, callbacks, path items, examples, links, security schemes) that turn its
 `components` into validator code for Zod, Valibot, ArkType, TypeBox or Effect Schema. Published
-to npm as `oas-truth`. It is the shared reading layer of nakita628's OpenAPI generators
-(diamond, openapi-rest-contract, wakusei); a change here reaches all of them. Built with
-vite-plus (`vp pack`, `vp check`, `vp test`), installed with pnpm.
+to npm as `oas-truth`. Code generators build on it, so a change to what it returns or emits
+reaches every one of them. Built with vite-plus (`vp pack`, `vp check`, `vp test`), installed
+with pnpm.
 
 The config files are the source of truth: when an instruction contradicts one, quote the config
 and ask before changing it.

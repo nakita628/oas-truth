@@ -37,8 +37,8 @@ alwaysApply: false
 
 ## Editing the lint configuration
 
-`lint` in `packages/oas-truth/vite.config.ts` is the standard this repository holds itself to,
-taken from nakita628/hono-takibi and nakita628/hekireki; its comments explain every choice.
+`lint` in `packages/oas-truth/vite.config.ts` is the standard this repository holds itself to;
+its comments explain every choice.
 
 - Adding a rule: place it in the section it belongs to and, if the reason is not obvious from its
   name, write the reason above it. Then run `pnpm check` and fix what it reports in the code — the
@@ -92,8 +92,8 @@ taken from nakita628/hono-takibi and nakita628/hekireki; its comments explain ev
 ## Releasing
 
 Releases are CI's job, and the `version` field of `packages/oas-truth/package.json` drives them.
-Mirroring hono-takibi, `release.yaml` runs after Test passes on a push to `main` and, from the
-exact commit Test ran on:
+`release.yaml` runs after Test passes on a push to `main` and, from the exact commit Test ran
+on:
 
 1. **check** — reads the version and asks npm whether it is published;
 2. **tag** — creates `v<version>` on that commit, or verifies it is already there; a mismatch

@@ -17,5 +17,4 @@ textlintrc
 typebox
 uuidv
 voidzero
-wakusei
 zizmor

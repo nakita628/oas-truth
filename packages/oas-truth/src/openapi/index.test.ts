@@ -145,7 +145,14 @@ model Error {
     fs.writeFileSync(TSP_TEST_FILE, tmpTsp)
     const result = await parseOpenAPI(TSP_TEST_FILE)
     // Matching the whole result prints the compiler's message when the case fails.
-    expect(result).toMatchObject({ ok: true })
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        openapi: '3.0.0',
+        info: { title: 'Widget Service' },
+        paths: { '/{id}': { get: expect.any(Object) } },
+      },
+    })
   })
 
   it('typeSpecToOpenAPI dir not Error', { timeout: 30_000 }, async () => {

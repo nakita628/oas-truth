@@ -14,7 +14,7 @@ alwaysApply: false
   what "clean" means.
 - `.github/workflows/lint.yaml` (Lint): installs zizmor with pipx, sets `LINT_ACTIONS_REQUIRED`
   and runs `vp run lint`, so zizmor cannot be skipped there.
-- `.github/workflows/release.yaml` runs after Test succeeds on a push to `main`; see Releasing.
+- `.github/workflows/release.yml` runs after Test succeeds on a push to `main`; see Releasing.
 - **Verify a change to the scripts, the workflows or the build in a fresh clone**, the way CI
   starts: `git clone . <tmp> && cd <tmp> && pnpm install --frozen-lockfile`, then the workflow's
   steps in order. The working copy carries gitignored output (`dist`) that a checkout does not
@@ -104,7 +104,7 @@ its comments explain every choice.
 ## Releasing
 
 Releases are CI's job, and the `version` field of `packages/oas-truth/package.json` drives them.
-`release.yaml` runs after Test passes on a push to `main` and, from the exact commit Test ran
+`release.yml` runs after Test passes on a push to `main` and, from the exact commit Test ran
 on:
 
 1. **check** — reads the version and asks npm whether it is published;

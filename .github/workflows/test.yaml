@@ -1,6 +1,6 @@
 name: Test
 
-# release.yaml runs after this workflow has passed on main.
+# release.yml runs after this workflow has passed on main.
 #
 # Action versions are tracked by Renovate, which pins each one to its digest
 # (helpers:pinGitHubActionDigests) and keeps the @vX.Y.Z tag as a comment.

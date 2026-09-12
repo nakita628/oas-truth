@@ -32,7 +32,7 @@ vite.config.ts                shared formatting style (printWidth 100, single qu
 lint/actionlint.mjs           runs actionlint (the npm WebAssembly build) over .github/workflows
 .github/workflows/test.yaml   CI (Test): build, test, `vp run check`
 .github/workflows/lint.yaml   CI (Lint): the repository linters, zizmor included
-.github/workflows/release.yaml  after Test on main: tag, npm publish, GitHub release
+.github/workflows/release.yml after Test on main: tag, npm publish, GitHub release
 ```
 
 ## Commands
@@ -84,7 +84,7 @@ ran part of it, say which part.
   and the TypeSpec tests' `tmp-spec.tsp` / `tmp/` work files.
 - **Never bump `version` in `packages/oas-truth/package.json`** unless the task is a release that
   was asked for: a new version reaching `main` is what publishes it. Never `npm publish` or push a
-  `v*` tag by hand — `.github/workflows/release.yaml` tags, publishes and releases, from one
+  `v*` tag by hand — `.github/workflows/release.yml` tags, publishes and releases, from one
   commit.
 
 ## Working order

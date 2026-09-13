@@ -23,12 +23,12 @@ describe('renderImport', () => {
     expect(makeAdapter('effect').renderImport()).toBe("import { Schema } from 'effect'")
   })
   it('typebox', () => {
-    expect(makeAdapter('typebox').renderImport()).toBe("import { Type } from '@sinclair/typebox'")
+    expect(makeAdapter('typebox').renderImport()).toBe("import { Type } from 'typebox'")
   })
 
   it('typebox adds Static when type aliases are exported', () => {
     expect(makeAdapter('typebox').renderImport({ exportTypes: true })).toBe(
-      "import { Type, type Static } from '@sinclair/typebox'",
+      "import { Type, type Static } from 'typebox'",
     )
   })
 })
@@ -173,6 +173,46 @@ describe('cycle helpers', () => {
   it('typebox has no lazy wrapper (cycles use Type.Cyclic)', () => {
     expect(makeAdapter('typebox').wrapLazy).toBe(undefined)
     expect(makeAdapter('typebox').renderCyclic).toBe(undefined)
+    expect(makeAdapter('typebox').reservedTypeNames).toStrictEqual([
+      'Type',
+      'Static',
+      'Codec',
+      'Compile',
+    ])
+  })
+
+  it('typebox puts a host ref in the outermost builder options', () => {
+    const adapter = makeAdapter('typebox')
+    expect(
+      adapter.toExpression({ type: 'object', properties: { a: { type: 'string' } } }, undefined, {
+        ref: 'X',
+      }),
+    ).toBe('Type.Object({a:Type.Optional(Type.String())},{ref:"X"})')
+    expect(adapter.toExpression({ type: 'string', minLength: 1 }, undefined, { ref: 'X' })).toBe(
+      'Type.String({ref:"X",minLength:1})',
+    )
+    expect(
+      adapter.toExpression(
+        { type: 'object', properties: { a: { type: 'string' } }, 'x-readonly': true } as never,
+        undefined,
+        { ref: 'X' },
+      ),
+    ).toBe('Type.Readonly(Type.Object({a:Type.Optional(Type.String())},{ref:"X"}))')
+  })
+
+  it('withRef wraps an expression and leaves a bare identifier unchanged', () => {
+    expect(makeAdapter('zod').withRef?.('z.string()', 'Tag')).toBe('z.string().meta({ref:"Tag"})')
+    expect(makeAdapter('zod').withRef?.('TagSchema', 'Tag')).toBe('TagSchema')
+    expect(makeAdapter('valibot').withRef?.('v.string()', 'Tag')).toBe(
+      'v.pipe(v.string(),v.metadata({ref:"Tag"}))',
+    )
+    expect(makeAdapter('arktype').withRef?.('type("string")', 'Tag')).toBe(
+      'type("string").configure({ref:"Tag"})',
+    )
+    expect(makeAdapter('effect').withRef?.('Schema.String', 'Tag')).toBe(
+      'Schema.String.annotate({identifier:"Tag"})',
+    )
+    expect(makeAdapter('typebox').withRef).toBe(undefined)
   })
 })
 

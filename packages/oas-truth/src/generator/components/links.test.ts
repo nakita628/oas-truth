@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import type { Components } from '../../openapi/index.js'
-import { makeLinksCode } from './links.js'
+import { makeLinksCode, makeLinksDeclarations } from './links.js'
 
 describe('makeLinksCode', () => {
   it('emits the link object', () => {
@@ -33,5 +33,18 @@ describe('makeLinksCode', () => {
 
   it('returns an empty string when links is empty', () => {
     expect(makeLinksCode({ links: {} }, false)).toBe('')
+  })
+})
+
+describe('makeLinksDeclarations', () => {
+  it('returns entries without an import line', () => {
+    const components = {
+      links: { A: { operationId: 'a' }, B: { operationId: 'b' } },
+    } as unknown as Components
+    expect(makeLinksDeclarations(components).map((d) => d.varName)).toStrictEqual([
+      'ALink',
+      'BLink',
+    ])
+    expect(makeLinksDeclarations({})).toStrictEqual([])
   })
 })

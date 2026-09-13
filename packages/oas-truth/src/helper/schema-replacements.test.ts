@@ -61,6 +61,28 @@ describe('makeSchemaReplacements detection', () => {
     ).toBe(0)
   })
 
+  it('passes the slot so a host can wrap only response content', () => {
+    const adapter = {
+      renderImport: () => '',
+      toExpression: () => 'EXPR',
+      renderTypeInfer: () => '',
+      wrapSchema: (expr: string, slot?: string) =>
+        slot === 'response-content' ? `resolver(${expr})` : expr,
+    }
+    const content = { type: 'string' }
+    const header = { type: 'integer' }
+    const map = makeSchemaReplacements(
+      {
+        content: { 'application/json': { schema: content } },
+        headers: { X: { schema: header } },
+      },
+      adapter,
+      { slot: 'response-content' },
+    )
+    expect(map.get(content)).toBe('resolver(EXPR)')
+    expect(map.get(header)).toBe('EXPR')
+  })
+
   it('applies wrapSchema to inline and $ref schema slots', () => {
     const adapter = {
       renderImport: () => '',

@@ -1,26 +1,49 @@
 import type { ComponentAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { toIdentifierPascalCase } from '../../utils/index.js'
+import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
+import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import { joinDeclarations } from './declaration.js'
+
+export function makeHeadersDeclarations(
+  components: Components,
+  adapter: ComponentAdapter,
+  options?: ComponentCodeOptions,
+): readonly ComponentDeclaration[] {
+  const { headers } = components
+  if (!headers) return []
+  return Object.entries(headers).flatMap(([name, header]) => {
+    if (!('schema' in header) || !header.schema) return []
+    const ident = toIdentifierPascalCase(name)
+    const varName = `${ident}HeaderSchema`
+    const raw = adapter.toExpression(header.schema)
+    const expr = adapter.wrapSchema ? adapter.wrapSchema(raw, 'header') : raw
+    const typeExport =
+      options?.exportTypes === true ? `\n\n${adapter.renderTypeInfer(varName)}` : ''
+    return [
+      {
+        name,
+        varName,
+        fileName: declarationFileName(ident),
+        code: `export const ${varName}=${expr}${typeExport}`,
+      },
+    ]
+  })
+}
 
 export function makeHeadersCode(
   components: Components,
   adapter: ComponentAdapter,
   exportTypes?: boolean,
 ) {
-  const { headers } = components
-  if (!headers) return ''
-  const entries = Object.entries(headers)
-  if (entries.length === 0) return ''
-  const imports = adapter.renderImport()
-  const exports = entries
-    .map(([name, header]) => {
-      if (!('schema' in header) || !header.schema) return ''
-      const constName = `${toIdentifierPascalCase(name)}HeaderSchema`
-      const expr = adapter.toExpression(header.schema)
-      const typeExport = exportTypes ? `\n\n${adapter.renderTypeInfer(constName)}` : ''
-      return `export const ${constName}=${expr}${typeExport}`
-    })
-    .filter(Boolean)
-    .join(';')
-  return exports ? `${imports}\n\n${exports}\n` : ''
+  return joinDeclarations(
+    makeHeadersDeclarations(
+      components,
+      adapter,
+      exportTypes === true ? { exportTypes: true } : undefined,
+    ),
+    {
+      trailingNewline: true,
+      importLine: adapter.renderImport(),
+    },
+  )
 }

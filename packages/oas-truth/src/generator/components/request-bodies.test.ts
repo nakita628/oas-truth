@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { makeRequestBodiesCode } from './request-bodies.js'
+import { makeRequestBodiesCode, makeRequestBodiesDeclarations } from './request-bodies.js'
 
 const zod = makeAdapter('zod')
 const valibot = makeAdapter('valibot')
@@ -84,5 +84,15 @@ describe('makeRequestBodiesCode', () => {
 
   it('returns an empty string when requestBodies is empty', () => {
     expect(makeRequestBodiesCode({ requestBodies: {} }, zod, false)).toBe('')
+  })
+})
+
+describe('makeRequestBodiesDeclarations', () => {
+  it('returns entries without an import line', () => {
+    expect(makeRequestBodiesDeclarations(inlineBody, zod)[0]?.varName).toBe('CreatePostRequestBody')
+    expect(makeRequestBodiesDeclarations(inlineBody, zod)[0]?.code.startsWith('import ')).toBe(
+      false,
+    )
+    expect(makeRequestBodiesDeclarations({}, zod)).toStrictEqual([])
   })
 })

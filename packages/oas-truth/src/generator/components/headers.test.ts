@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { makeHeadersCode } from './headers.js'
+import { makeHeadersCode, makeHeadersDeclarations } from './headers.js'
 
 const zod = makeAdapter('zod')
 const valibot = makeAdapter('valibot')
@@ -77,5 +77,19 @@ describe('makeHeadersCode', () => {
 
   it('returns an empty string when headers is empty', () => {
     expect(makeHeadersCode({ headers: {} }, zod)).toBe('')
+  })
+})
+
+describe('makeHeadersDeclarations', () => {
+  it('returns entries without an import line', () => {
+    const components = {
+      headers: { A: { schema: { type: 'string' } }, B: { schema: { type: 'string' } } },
+    } as unknown as Components
+    expect(makeHeadersDeclarations(components, zod).map((d) => d.varName)).toStrictEqual([
+      'AHeaderSchema',
+      'BHeaderSchema',
+    ])
+    expect(makeHeadersDeclarations(components, zod)[0]?.code.startsWith('import ')).toBe(false)
+    expect(makeHeadersDeclarations({}, zod)).toStrictEqual([])
   })
 })

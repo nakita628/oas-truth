@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { makeResponsesCode } from './responses.js'
+import { makeResponsesCode, makeResponsesDeclarations } from './responses.js'
 
 const zod = makeAdapter('zod')
 const valibot = makeAdapter('valibot')
@@ -147,10 +147,52 @@ describe('makeResponsesCode', () => {
     )
   })
 
+  it('returns declarations without an import line', () => {
+    const components = {
+      responses: { Ok: { description: 'ok' }, Bad: { description: 'bad' } },
+    } as unknown as Components
+    expect(
+      makeResponsesDeclarations(components, zod).map((d) => [d.name, d.varName, d.fileName]),
+    ).toStrictEqual([
+      ['Ok', 'OkResponse', 'ok'],
+      ['Bad', 'BadResponse', 'bad'],
+    ])
+    expect(
+      makeResponsesDeclarations(components, zod).every((d) => !d.code.startsWith('import ')),
+    ).toBe(true)
+    expect(makeResponsesDeclarations({}, zod)).toStrictEqual([])
+    expect(
+      makeResponsesDeclarations(
+        { responses: { R: { $ref: '#/components/responses/X' } } } as never,
+        zod,
+      ),
+    ).toStrictEqual([])
+  })
+
   it('escapes a non-ASCII component name into a valid TS identifier', () => {
     const components = { responses: { café: { description: 'ok' } } } as unknown as Components
     expect(makeResponsesCode(components, zod, false)).toBe(
       'export const Cafue9Response={description:"ok"}',
+    )
+  })
+
+  it('wraps only response content when wrapSchema checks the slot', () => {
+    const hook = {
+      ...zod,
+      wrapSchema: (expr: string, slot?: string) =>
+        slot === 'response-content' ? `resolver(${expr})` : expr,
+    }
+    const components = {
+      responses: {
+        Mixed: {
+          description: 'd',
+          content: { 'application/json': { schema: { type: 'string' } } },
+          headers: { X: { schema: { type: 'integer' } } },
+        },
+      },
+    } as unknown as Components
+    expect(makeResponsesCode(components, hook, false)).toBe(
+      'export const MixedResponse={description:"d",content:{"application/json":{schema:resolver(z.string())}},headers:{X:{schema:z.int()}}}',
     )
   })
 

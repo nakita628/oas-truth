@@ -2,7 +2,14 @@ import type { ComponentAdapter } from '../../adapter/index.js'
 import { analyzeSchemas, collectSchemaRefs, makeCyclicType } from '../../helper/graph.js'
 import { wrapReferences } from '../../helper/identifiers.js'
 import type { Components, Schema } from '../../openapi/index.js'
-import { isRecord, schemaRefToName, toIdentifierPascalCase } from '../../utils/index.js'
+import {
+  claimName,
+  declarationFileName,
+  isRecord,
+  makeSchemaIdentifiers,
+  schemaRefToName,
+  toIdentifierPascalCase,
+} from '../../utils/index.js'
 
 export type SchemasOptions = {
   readonly exportTypes?: boolean
@@ -21,9 +28,15 @@ export type SchemasOptions = {
   readonly cyclicTypeStyle?: 'library' | 'literal'
   /**
    * Host hook around each declaration expression — e.g. hono-openapi ref
-   * registration. Applied after cycle handling.
+   * registration. Applied after cycle handling. Wins over `ref`.
    */
   readonly wrapDeclaration?: (expr: string, name: string) => string
+  /**
+   * Register the OpenAPI key on each declaration. TypeBox puts it in the
+   * outermost builder options via schema-to-library; the other libraries use
+   * `adapter.withRef` (an outer wrap). A bare identifier is left unchanged.
+   */
+  readonly ref?: boolean
 }
 
 export type SchemaDeclaration = {
@@ -38,24 +51,6 @@ export type SchemaDeclaration = {
    */
   readonly importLine: string
   readonly code: string
-}
-
-/** `name`, or the first of `name2`, `name3`, … not in `used`. */
-function claimName(name: string, used: ReadonlySet<string>, i = 2): string {
-  if (!used.has(name)) return name
-  return used.has(`${name}${i}`) ? claimName(name, used, i + 1) : `${name}${i}`
-}
-
-/**
- * `toIdentifierPascalCase` folds `user` and `User` into one identifier; later
- * colliders get a numeric suffix so no declaration is lost. A `$ref` to a later
- * collider still resolves to the first declaration.
- */
-function makeSchemaIdentifiers(schemas: { readonly [k: string]: Schema }) {
-  return Object.keys(schemas).reduce(
-    (acc, key) => acc.set(key, claimName(toIdentifierPascalCase(key), new Set(acc.values()))),
-    new Map<string, string>(),
-  )
 }
 
 /** Keys whose value is a subschema (or a list of them) and keys whose value maps names to subschemas. */
@@ -118,19 +113,35 @@ function markReadonly(schema: Schema) {
  * becomes one `Type.Cyclic(...)` / `scope(...)` container and each member selects
  * its entry. schema-to-library builds the container from a `$defs` document.
  */
+function rewriteCollisionRef(node: Schema, identifiers: ReadonlyMap<string, string>): Schema {
+  if (typeof node.$ref !== 'string' || !node.$ref.startsWith('#/components/schemas/')) return node
+  const key = schemaRefToName(node.$ref)
+  const ident = identifiers.get(key)
+  if (ident === undefined || ident === toIdentifierPascalCase(key)) return node
+  return { ...node, $ref: `#/components/schemas/${ident}` }
+}
+
 function makeCyclicContainer(
   varName: string,
   group: readonly string[],
   schemas: { readonly [k: string]: Schema },
   identifiers: ReadonlyMap<string, string>,
   adapter: ComponentAdapter,
+  ref?: string,
 ) {
   const groupIdentifiers = new Map(group.map((name) => [name, identifiers.get(name) ?? name]))
   const localize = (node: Schema): Schema => {
-    const ident = node.$ref ? groupIdentifiers.get(schemaRefToName(node.$ref)) : undefined
-    if (ident === undefined) return node
-    const local = Object.fromEntries([...Object.entries(node), ['$ref', `#/$defs/${ident}Schema`]])
-    return isSchema(local) ? local : node
+    const key = node.$ref ? schemaRefToName(node.$ref) : undefined
+    if (key === undefined) return node
+    const groupIdent = groupIdentifiers.get(key)
+    if (groupIdent !== undefined) {
+      const local = Object.fromEntries([
+        ...Object.entries(node),
+        ['$ref', `#/$defs/${groupIdent}Schema`],
+      ])
+      return isSchema(local) ? local : node
+    }
+    return rewriteCollisionRef(node, identifiers)
   }
   const $defs = Object.fromEntries(
     group.map((name) => [
@@ -138,7 +149,11 @@ function makeCyclicContainer(
       mapSchema(schemas[name] ?? {}, localize),
     ]),
   )
-  return adapter.toExpression({ title: varName, $defs })
+  return adapter.toExpression(
+    { title: varName, $defs },
+    undefined,
+    ref === undefined ? undefined : { ref },
+  )
 }
 
 /**
@@ -170,10 +185,6 @@ function exportedTypeName(
   return (adapter.reservedTypeNames ?? []).includes(ident) ? `${ident}Type` : ident
 }
 
-function fileNameOf(ident: string) {
-  return `${ident.charAt(0).toLowerCase()}${ident.slice(1)}`
-}
-
 /**
  * One `export const <X>Schema=...` declaration per `components.schemas` entry,
  * in dependency-first order. Only references inside a `$ref` cycle are lazy
@@ -201,12 +212,14 @@ export function makeSchemaDeclarations(
   const infer = (varName: string) =>
     adapter.renderTypeInfer(varName).replace(`export type ${varName}=`, '')
   const style = options?.cyclicTypeStyle === 'literal' ? {} : (adapter.cyclicTypeStyle ?? {})
+  const declarationRef = options?.ref === true
   return order.map((name) => {
-    const schema = prepared[name] ?? {}
+    const schema = mapSchema(prepared[name] ?? {}, (node) => rewriteCollisionRef(node, identifiers))
     const ident = identifiers.get(name) ?? toIdentifierPascalCase(name)
     const varName = `${ident}Schema`
     const group = cycles.get(name)
     const arktypeReadonly = adapter.renderCyclic !== undefined && options?.readonly === true
+    const hostRef = declarationRef ? name : undefined
     const container =
       group && adapter.wrapLazy === undefined
         ? makeCyclicContainer(
@@ -215,6 +228,7 @@ export function makeSchemaDeclarations(
             arktypeReadonly ? schemas : prepared,
             identifiers,
             adapter,
+            adapter.withRef === undefined ? hostRef : undefined,
           )
         : undefined
     const peers = group ?? []
@@ -232,7 +246,13 @@ export function makeSchemaDeclarations(
             ),
           ) ?? container)
     const member = rendered && arktypeReadonly ? `${rendered}.readonly()` : rendered
-    const expression = member ?? adapter.toExpression({ ...schema, title: varName })
+    const expression =
+      member ??
+      adapter.toExpression(
+        { ...schema, title: varName },
+        undefined,
+        adapter.withRef === undefined && hostRef !== undefined ? { ref: hostRef } : undefined,
+      )
     const body = adapter.wrapLazy
       ? wrapReferences(
           expression,
@@ -240,7 +260,11 @@ export function makeSchemaDeclarations(
           adapter.wrapLazy,
         )
       : expression
-    const value = options?.wrapDeclaration ? options.wrapDeclaration(body, name) : body
+    const value = options?.wrapDeclaration
+      ? options.wrapDeclaration(body, name)
+      : hostRef !== undefined && adapter.withRef
+        ? adapter.withRef(body, name)
+        : body
     const helper = group && adapter.cyclicAnnotation ? claimName(`${ident}Type`, taken) : undefined
     const annotationText = helper ? adapter.cyclicAnnotation?.(helper) : undefined
     // Keep the helper only when the annotation names it; otherwise it is unused.
@@ -259,7 +283,7 @@ export function makeSchemaDeclarations(
     return {
       name,
       varName,
-      fileName: fileNameOf(ident),
+      fileName: declarationFileName(ident),
       importLine: schemaImportLine(adapter, options, containerCycle),
       code: `${typeDef}export const ${varName}${annotation}=${value}${typeExport}`,
     }

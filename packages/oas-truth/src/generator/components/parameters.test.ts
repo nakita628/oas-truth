@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { makeParametersCode } from './parameters.js'
+import { makeParametersCode, makeParametersDeclarations } from './parameters.js'
 
 const zod = makeAdapter('zod')
 const valibot = makeAdapter('valibot')
@@ -104,5 +104,49 @@ describe('makeParametersCode', () => {
 
   it('returns an empty string when parameters is empty', () => {
     expect(makeParametersCode({ parameters: {} }, zod)).toBe('')
+  })
+})
+
+describe('makeParametersDeclarations', () => {
+  it('returns one entry without an import line', () => {
+    const components = {
+      parameters: { Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } } },
+    } as unknown as Components
+    expect(makeParametersDeclarations(components, zod)).toStrictEqual([
+      {
+        name: 'Limit',
+        varName: 'LimitParamsSchema',
+        fileName: 'limit',
+        code: 'export const LimitParamsSchema=z.coerce.number().int()',
+      },
+    ])
+  })
+
+  it('returns two entries and nothing for a missing kind', () => {
+    const components = {
+      parameters: {
+        Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } },
+        Offset: { name: 'offset', in: 'query', schema: { type: 'integer' } },
+      },
+    } as unknown as Components
+    expect(makeParametersDeclarations(components, zod).map((d) => d.name)).toStrictEqual([
+      'Limit',
+      'Offset',
+    ])
+    expect(makeParametersDeclarations({}, zod)).toStrictEqual([])
+  })
+
+  it('does not wrap a parameter when wrapSchema checks for response-content', () => {
+    const hook = {
+      ...zod,
+      wrapSchema: (expr: string, slot?: string) =>
+        slot === 'response-content' ? `resolver(${expr})` : expr,
+    }
+    const components = {
+      parameters: { Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } } },
+    } as unknown as Components
+    expect(makeParametersDeclarations(components, hook)[0]?.code).toBe(
+      'export const LimitParamsSchema=z.coerce.number().int()',
+    )
   })
 })

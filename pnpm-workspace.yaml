@@ -4,7 +4,7 @@ allowBuilds:
   # Optional native accelerator pulled in through schema-to-library -> effect -> msgpackr; the JS
   # fallback is what oas-truth uses, so its build script stays off.
   msgpackr-extract: false
-# 0.4.1 is this repository's generator sibling, published today. pnpm's default
+# 0.5.0 is this repository's generator sibling, published today. pnpm's default
 # 24-hour floor rejects it in CI until then; the lockfile already pins it.
 minimumReleaseAgeExclude:
-  - schema-to-library@0.4.1
+  - schema-to-library@0.5.0

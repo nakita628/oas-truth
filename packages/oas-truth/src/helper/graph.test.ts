@@ -77,4 +77,36 @@ describe('makeCyclicType', () => {
       ),
     ).toBe('type NodeType={readonly "children"?:readonly (NodeType)[]}')
   })
+
+  it('adds | undefined on optional fields when the library infers that', () => {
+    expect(
+      makeCyclicType(
+        'Node',
+        'NodeType',
+        {
+          type: 'object',
+          properties: { children: { type: 'array', items: ref('Node') } },
+        } as never,
+        infer,
+        false,
+        { optionalUndefined: true },
+      ),
+    ).toBe('type NodeType={"children"?:(NodeType)[]|undefined}')
+  })
+
+  it('marks arrays readonly and optionals undefined for Effect', () => {
+    expect(
+      makeCyclicType(
+        'Node',
+        'NodeType',
+        {
+          type: 'object',
+          properties: { children: { type: 'array', items: ref('Node') } },
+        } as never,
+        infer,
+        false,
+        { optionalUndefined: true, readonlyArrays: true },
+      ),
+    ).toBe('type NodeType={"children"?:readonly (NodeType)[]|undefined}')
+  })
 })

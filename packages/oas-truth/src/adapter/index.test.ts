@@ -13,11 +13,23 @@ describe('renderImport', () => {
   it('arktype', () => {
     expect(makeAdapter('arktype').renderImport()).toBe("import { type } from 'arktype'")
   })
+
+  it('arktype adds scope when a cycle uses the container form', () => {
+    expect(makeAdapter('arktype').renderImport({ cyclic: true })).toBe(
+      "import { type, scope } from 'arktype'",
+    )
+  })
   it('effect', () => {
     expect(makeAdapter('effect').renderImport()).toBe("import { Schema } from 'effect'")
   })
   it('typebox', () => {
     expect(makeAdapter('typebox').renderImport()).toBe("import { Type } from '@sinclair/typebox'")
+  })
+
+  it('typebox adds Static when type aliases are exported', () => {
+    expect(makeAdapter('typebox').renderImport({ exportTypes: true })).toBe(
+      "import { Type, type Static } from '@sinclair/typebox'",
+    )
   })
 })
 
@@ -121,12 +133,14 @@ describe('cycle helpers', () => {
     const adapter = makeAdapter('zod')
     expect(adapter.wrapLazy?.('NodeSchema')).toBe('z.lazy(() => NodeSchema)')
     expect(adapter.cyclicAnnotation?.('NodeType')).toBe('z.ZodType<NodeType>')
+    expect(adapter.cyclicTypeStyle).toBe(undefined)
   })
 
   it('valibot wraps a lazy reference and annotates TS7022', () => {
     const adapter = makeAdapter('valibot')
     expect(adapter.wrapLazy?.('NodeSchema')).toBe('v.lazy(() => NodeSchema)')
     expect(adapter.cyclicAnnotation?.('NodeType')).toBe('v.GenericSchema<NodeType>')
+    expect(adapter.cyclicTypeStyle).toStrictEqual({ optionalUndefined: true })
   })
 
   it('effect strips suspend and re-wraps it for a cycle', () => {
@@ -138,7 +152,11 @@ describe('cycle helpers', () => {
       }),
     ).toBe('Schema.Array(UserSchema)')
     expect(adapter.wrapLazy?.('NodeSchema')).toBe('Schema.suspend(() => NodeSchema)')
-    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Codec<any>')
+    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Codec<NodeType>')
+    expect(adapter.cyclicTypeStyle).toStrictEqual({
+      optionalUndefined: true,
+      readonlyArrays: true,
+    })
   })
 
   it('arktype extracts a scope container and aliases externals', () => {

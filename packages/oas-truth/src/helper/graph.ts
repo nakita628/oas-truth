@@ -1,3 +1,4 @@
+import type { CyclicTypeStyle } from '../adapter/index.js'
 import type { Schema } from '../openapi/index.js'
 import { isRecord, schemaRefToName } from '../utils/index.js'
 
@@ -64,8 +65,9 @@ function makeTypeString(
   self: { readonly name: string; readonly typeName: string },
   infer: (name: string) => string,
   readonly: boolean,
+  style: CyclicTypeStyle,
 ): string {
-  const recurse = (s: Schema) => makeTypeString(s, self, infer, readonly)
+  const recurse = (s: Schema) => makeTypeString(s, self, infer, readonly, style)
   const ro = readonly ? 'readonly ' : ''
   if (schema.$ref) {
     const name = schemaRefToName(schema.$ref)
@@ -80,6 +82,8 @@ function makeTypeString(
   if (schema.const !== undefined) return JSON.stringify(schema.const)
   const types = schema.type === undefined ? ['object'] : [schema.type].flat()
   const nullable = schema.nullable === true || types.includes('null')
+  const arrayRo = readonly || style.readonlyArrays === true ? 'readonly ' : ''
+  const optionalUndef = style.optionalUndefined === true ? '|undefined' : ''
   const base = types
     .filter((type) => type !== 'null')
     .map((type): string => {
@@ -89,13 +93,13 @@ function makeTypeString(
       if (type === 'array') {
         const items = schema.items
         const item = isRecord(items) ? recurse(items) : 'unknown'
-        return `${ro}(${item})[]`
+        return `${arrayRo}(${item})[]`
       }
       if (type === 'object') {
-        const props = Object.entries(schema.properties ?? {}).map(
-          ([key, prop]) =>
-            `${ro}${JSON.stringify(key)}${schema.required?.includes(key) ? '' : '?'}:${recurse(prop)}`,
-        )
+        const props = Object.entries(schema.properties ?? {}).map(([key, prop]) => {
+          const required = schema.required?.includes(key) === true
+          return `${ro}${JSON.stringify(key)}${required ? '' : '?'}:${recurse(prop)}${required ? '' : optionalUndef}`
+        })
         const extra = isRecord(schema.additionalProperties)
           ? [`${ro}[key:string]:${recurse(schema.additionalProperties)}`]
           : props.length === 0
@@ -113,7 +117,9 @@ function makeTypeString(
 /**
  * The TypeScript shape of a recursive schema, so its declaration can carry an
  * explicit `z.ZodType<XType>` / `v.GenericSchema<XType>` annotation (TS7022).
- * References to other schemas go through their inferred types.
+ * References to other schemas go through their inferred types. `style` is the
+ * library's inferred object type (Valibot `| undefined`, Effect `readonly`
+ * arrays) so the annotation type-checks under `exactOptionalPropertyTypes`.
  */
 export function makeCyclicType(
   name: string,
@@ -121,6 +127,7 @@ export function makeCyclicType(
   schema: Schema,
   infer: (name: string) => string,
   readonly: boolean,
+  style: CyclicTypeStyle = {},
 ) {
-  return `type ${typeName}=${makeTypeString(schema, { name, typeName }, infer, readonly)}`
+  return `type ${typeName}=${makeTypeString(schema, { name, typeName }, infer, readonly, style)}`
 }

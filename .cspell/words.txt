@@ -20,5 +20,6 @@ textlint
 textlintrc
 typebox
 uuidv
+valibot
 voidzero
 zizmor

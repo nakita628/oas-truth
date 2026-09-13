@@ -17,6 +17,10 @@ export { makeParametersCode } from './generator/components/parameters.js'
 export { makePathItemsCode } from './generator/components/path-items.js'
 export { makeRequestBodiesCode } from './generator/components/request-bodies.js'
 export { makeResponsesCode } from './generator/components/responses.js'
-export { makeSchemasCode, makeSchemaDeclarations } from './generator/components/schemas.js'
+export {
+  makeSchemasCode,
+  makeSchemaDeclarations,
+  schemaImportLine,
+} from './generator/components/schemas.js'
 export type { SchemaDeclaration, SchemasOptions } from './generator/components/schemas.js'
 export { makeSecuritySchemesCode } from './generator/components/security-schemes.js'

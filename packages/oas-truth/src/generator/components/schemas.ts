@@ -13,6 +13,13 @@ export type SchemasOptions = {
    */
   readonly typeAlias?: 'const' | 'key'
   /**
+   * Shape of the TS7022 helper type. `'library'` (default) matches what the
+   * validator infers, so `v.GenericSchema<Helper>` / `Schema.Codec<Helper>`
+   * type-check under `exactOptionalPropertyTypes`. `'literal'` is the
+   * Zod-shaped `prop?: T` form for every library.
+   */
+  readonly cyclicTypeStyle?: 'library' | 'literal'
+  /**
    * Host hook around each declaration expression — e.g. hono-openapi ref
    * registration. Applied after cycle handling.
    */
@@ -23,6 +30,13 @@ export type SchemaDeclaration = {
   readonly name: string
   readonly varName: string
   readonly fileName: string
+  /**
+   * The library import this declaration needs when written to its own file.
+   * An Arktype cycle that is only `scope({...}).export().Member` gets
+   * `import { type, scope } from 'arktype'`; a non-cyclic file stays
+   * `import { type } from 'arktype'`.
+   */
+  readonly importLine: string
   readonly code: string
 }
 
@@ -127,19 +141,23 @@ function makeCyclicContainer(
   return adapter.toExpression({ title: varName, $defs })
 }
 
-function schemaImportLine(
+/**
+ * The import line a schemas file needs. `cyclic` is true when this file (or
+ * the bundled document) contains an Arktype `scope` / TypeBox container
+ * cycle — split files that are only `scope({...}).export().Member` still
+ * have to import `scope`.
+ */
+export function schemaImportLine(
   adapter: ComponentAdapter,
-  options: SchemasOptions | undefined,
-  hasContainerCycle: boolean,
+  options?: SchemasOptions,
+  cyclic = false,
 ) {
-  const line = adapter.renderImport()
-  if (hasContainerCycle && adapter.renderCyclic && line === "import { type } from 'arktype'") {
-    return "import { type, scope } from 'arktype'"
-  }
-  if (options?.exportTypes === true && line === "import { Type } from '@sinclair/typebox'") {
-    return "import { Type, type Static } from '@sinclair/typebox'"
-  }
-  return line
+  const exportTypes = options?.exportTypes === true
+  if (!cyclic && !exportTypes) return adapter.renderImport()
+  return adapter.renderImport({
+    ...(cyclic && { cyclic: true }),
+    ...(exportTypes && { exportTypes: true }),
+  })
 }
 
 function exportedTypeName(
@@ -182,6 +200,7 @@ export function makeSchemaDeclarations(
   ])
   const infer = (varName: string) =>
     adapter.renderTypeInfer(varName).replace(`export type ${varName}=`, '')
+  const style = options?.cyclicTypeStyle === 'literal' ? {} : (adapter.cyclicTypeStyle ?? {})
   return order.map((name) => {
     const schema = prepared[name] ?? {}
     const ident = identifiers.get(name) ?? toIdentifierPascalCase(name)
@@ -224,22 +243,24 @@ export function makeSchemaDeclarations(
     const value = options?.wrapDeclaration ? options.wrapDeclaration(body, name) : body
     const helper = group && adapter.cyclicAnnotation ? claimName(`${ident}Type`, taken) : undefined
     const annotationText = helper ? adapter.cyclicAnnotation?.(helper) : undefined
-    // Effect's annotation is `Schema.Codec<any>` and does not name the helper.
+    // Keep the helper only when the annotation names it; otherwise it is unused.
     const usesHelper = helper !== undefined && annotationText?.includes(helper) === true
     if (helper && usesHelper) taken.add(helper)
     const typeDef =
       helper && usesHelper
-        ? `${makeCyclicType(name, helper, schema, (ref) => infer(`${identifiers.get(ref) ?? toIdentifierPascalCase(ref)}Schema`), options?.readonly === true)}\n\n`
+        ? `${makeCyclicType(name, helper, schema, (ref) => infer(`${identifiers.get(ref) ?? toIdentifierPascalCase(ref)}Schema`), options?.readonly === true, style)}\n\n`
         : ''
     const annotation = annotationText === undefined ? '' : `:${annotationText}`
     const typeExport =
       options?.exportTypes === true
         ? `\n\nexport type ${exportedTypeName(ident, varName, adapter, options)}=${infer(varName)}`
         : ''
+    const containerCycle = group !== undefined && adapter.wrapLazy === undefined
     return {
       name,
       varName,
       fileName: fileNameOf(ident),
+      importLine: schemaImportLine(adapter, options, containerCycle),
       code: `${typeDef}export const ${varName}${annotation}=${value}${typeExport}`,
     }
   })
@@ -258,8 +279,7 @@ export function makeSchemasCode(
   if (!schemas) return ''
   const declarations = makeSchemaDeclarations(schemas, adapter, options)
   if (declarations.length === 0) return ''
-  const hasContainerCycle =
-    adapter.wrapLazy === undefined && analyzeSchemas(schemas).cycles.size > 0
-  const imports = schemaImportLine(adapter, options, hasContainerCycle)
+  const cyclic = declarations.some((d) => d.importLine !== schemaImportLine(adapter, options))
+  const imports = schemaImportLine(adapter, options, cyclic)
   return `${imports}\n\n${declarations.map((d) => d.code).join(';')}\n`
 }

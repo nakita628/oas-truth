@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { makeCallbacksCode } from './callbacks.js'
+import { makeCallbacksCode, makeCallbacksDeclarations } from './callbacks.js'
 
 const zod = makeAdapter('zod')
 
@@ -69,5 +69,22 @@ describe('makeCallbacksCode', () => {
 
   it('returns an empty string when callbacks is empty', () => {
     expect(makeCallbacksCode({ callbacks: {} }, zod, false)).toBe('')
+  })
+})
+
+describe('makeCallbacksDeclarations', () => {
+  it('returns entries without an import line and skips a $ref', () => {
+    expect(
+      makeCallbacksDeclarations({ callbacks: { OnEvent: { '{$url}': {} } } }, zod).map(
+        (d) => d.varName,
+      ),
+    ).toStrictEqual(['OnEventCallback'])
+    expect(makeCallbacksDeclarations({}, zod)).toStrictEqual([])
+    expect(
+      makeCallbacksDeclarations(
+        { callbacks: { R: { $ref: '#/components/callbacks/X' } } } as never,
+        zod,
+      ),
+    ).toStrictEqual([])
   })
 })

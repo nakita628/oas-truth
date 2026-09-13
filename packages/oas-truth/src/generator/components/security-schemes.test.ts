@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import type { Components } from '../../openapi/index.js'
-import { makeSecuritySchemesCode } from './security-schemes.js'
+import { makeSecuritySchemesCode, makeSecuritySchemesDeclarations } from './security-schemes.js'
 
 describe('makeSecuritySchemesCode', () => {
   it('emits the security scheme object', () => {
@@ -40,5 +40,18 @@ describe('makeSecuritySchemesCode', () => {
 
   it('returns an empty string when securitySchemes is empty', () => {
     expect(makeSecuritySchemesCode({ securitySchemes: {} }, false)).toBe('')
+  })
+})
+
+describe('makeSecuritySchemesDeclarations', () => {
+  it('returns entries without an import line', () => {
+    const components = {
+      securitySchemes: { A: { type: 'http' }, B: { type: 'apiKey' } },
+    } as unknown as Components
+    expect(makeSecuritySchemesDeclarations(components).map((d) => d.varName)).toStrictEqual([
+      'ASecurityScheme',
+      'BSecurityScheme',
+    ])
+    expect(makeSecuritySchemesDeclarations({})).toStrictEqual([])
   })
 })

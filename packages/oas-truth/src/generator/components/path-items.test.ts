@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { makePathItemsCode } from './path-items.js'
+import { makePathItemsCode, makePathItemsDeclarations } from './path-items.js'
 
 const zod = makeAdapter('zod')
 
@@ -74,5 +74,17 @@ describe('makePathItemsCode', () => {
 
   it('returns an empty string when pathItems is empty', () => {
     expect(makePathItemsCode({ pathItems: {} }, zod, false)).toBe('')
+  })
+})
+
+describe('makePathItemsDeclarations', () => {
+  it('returns entries without an import line', () => {
+    expect(
+      makePathItemsDeclarations(
+        { pathItems: { Item: { get: {} }, Other: { get: {} } } } as never,
+        zod,
+      ).map((d) => d.varName),
+    ).toStrictEqual(['ItemPathItem', 'OtherPathItem'])
+    expect(makePathItemsDeclarations({}, zod)).toStrictEqual([])
   })
 })

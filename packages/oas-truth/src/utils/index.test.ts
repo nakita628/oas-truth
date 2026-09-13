@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import {
   isRecord,
   makeSafeKey,
+  makeSchemaIdentifiers,
   makeSchemaVarName,
   schemaRefToName,
   toIdentifierPascalCase,
@@ -113,9 +114,25 @@ describe('makeSafeKey', () => {
   })
 })
 
+describe('makeSchemaIdentifiers', () => {
+  it('suffixes later colliders and keeps distinct keys', () => {
+    expect([...makeSchemaIdentifiers({ user: {}, User: {}, 'user-profile': {} })]).toStrictEqual([
+      ['user', 'User'],
+      ['User', 'User2'],
+      ['user-profile', 'UserProfile'],
+    ])
+  })
+})
+
 describe('makeSchemaVarName', () => {
   it('resolves a schemas $ref to a schema identifier', () => {
     expect(makeSchemaVarName('#/components/schemas/User')).toBe('UserSchema')
+  })
+
+  it('uses the collision map for a later collider', () => {
+    expect(makeSchemaVarName('#/components/schemas/User', new Map([['User', 'User2']]))).toBe(
+      'User2Schema',
+    )
   })
   it('decodes and identifier-cases a percent-encoded ref', () => {
     expect(makeSchemaVarName('#/components/schemas/User%20Name')).toBe('UserNameSchema')

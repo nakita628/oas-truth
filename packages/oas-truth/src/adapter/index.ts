@@ -11,6 +11,22 @@ export type ParamIn = 'query' | 'path'
 export type SchemaLib = 'zod' | 'valibot' | 'arktype' | 'effect' | 'typebox'
 
 /**
+ * Which `schema:` slot a host `wrapSchema` hook is looking at. The second
+ * argument is optional so an existing one-argument hook keeps compiling.
+ */
+export type SchemaSlot =
+  | 'response-content'
+  | 'request-content'
+  | 'header'
+  | 'parameter'
+  | 'media-type'
+
+/** Optional third argument to `toExpression` — TypeBox puts `ref` in builder options. */
+export type ToExpressionOptions = {
+  readonly ref?: string
+}
+
+/**
  * Flags `renderImport` uses when the schemas builder needs more than the
  * library's default line — Arktype `scope` for a `$ref` cycle, TypeBox
  * `Static` when type aliases are exported.
@@ -38,10 +54,14 @@ export type CyclicTypeStyle = {
  * required without a cast.
  *
  * `wrapSchema` is an optional host hook applied to every `schema:` slot
- * expression (inline and `$ref` alike). A host that needs to transform the
- * expression — e.g. hono-openapi wrapping it in `resolver(...)` — supplies it;
- * omitting it leaves the expression untouched (identity), so the shared library
- * stays framework-agnostic.
+ * expression (inline and `$ref` alike). The second argument is the slot so a
+ * host can wrap response content and leave header schemas plain. Omitting the
+ * hook leaves the expression untouched (identity), so the shared library stays
+ * framework-agnostic.
+ *
+ * `withRef` is the library-specific outer wrap for a component name
+ * (`.meta({ref})`, `v.metadata`, `.configure({ref})`, `.annotate({identifier})`).
+ * TypeBox has no post-construction wrap: pass `ref` to `toExpression` instead.
  *
  * Cycle handling lives next to each library: `wrapLazy` re-wraps a `$ref`
  * inside a strongly connected component (Zod, Valibot, Effect);
@@ -52,9 +72,14 @@ export type CyclicTypeStyle = {
  */
 export type ComponentAdapter = {
   readonly renderImport: (options?: RenderImportOptions) => string
-  readonly toExpression: (schema: Schema, paramIn?: ParamIn) => string
+  readonly toExpression: (
+    schema: Schema,
+    paramIn?: ParamIn,
+    options?: ToExpressionOptions,
+  ) => string
   readonly renderTypeInfer: (constName: string) => string
-  readonly wrapSchema?: (expr: string) => string
+  readonly wrapSchema?: (expr: string, slot?: SchemaSlot) => string
+  readonly withRef?: (expr: string, ref: string) => string
   readonly wrapLazy?: (varName: string) => string
   readonly cyclicAnnotation?: (typeName: string) => string
   readonly cyclicTypeStyle?: CyclicTypeStyle
@@ -64,6 +89,11 @@ export type ComponentAdapter = {
     externals: readonly string[],
   ) => string
   readonly reservedTypeNames?: readonly string[]
+}
+
+/** A generated identifier (`TagSchema`) is already a registered name — do not wrap it. */
+function isBareIdent(expr: string) {
+  return /^[A-Za-z_$][\w$]*$/u.test(expr)
 }
 
 /**
@@ -152,6 +182,9 @@ function makeZodAdapter(): ComponentAdapter {
     cyclicAnnotation(typeName) {
       return `z.ZodType<${typeName}>`
     },
+    withRef(expr, ref) {
+      return isBareIdent(expr) ? expr : `${expr}.meta({ref:${JSON.stringify(ref)}})`
+    },
   }
 }
 
@@ -181,6 +214,9 @@ function makeValibotAdapter(): ComponentAdapter {
       return `v.GenericSchema<${typeName}>`
     },
     cyclicTypeStyle: { optionalUndefined: true },
+    withRef(expr, ref) {
+      return isBareIdent(expr) ? expr : `v.pipe(${expr},v.metadata({ref:${JSON.stringify(ref)}}))`
+    },
   }
 }
 
@@ -206,30 +242,34 @@ function makeArktypeAdapter(): ComponentAdapter {
     },
     renderCyclic: renderArktypeCyclic,
     reservedTypeNames: ['type', 'scope'],
+    withRef(expr, ref) {
+      return isBareIdent(expr) ? expr : `${expr}.configure({ref:${JSON.stringify(ref)}})`
+    },
   }
 }
 
 function makeTypeboxAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn) {
+    toExpression(schema, paramIn, options) {
       return extractExpr(
         schemaToTypebox(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
           ...(paramIn && { paramIn }),
+          ...(options?.ref !== undefined && { ref: options.ref }),
         }),
       )
     },
     renderImport(options) {
       return options?.exportTypes === true
-        ? "import { Type, type Static } from '@sinclair/typebox'"
-        : "import { Type } from '@sinclair/typebox'"
+        ? "import { Type, type Static } from 'typebox'"
+        : "import { Type } from 'typebox'"
     },
     renderTypeInfer(constName) {
       return `export type ${constName}=Static<typeof ${constName}>`
     },
-    reservedTypeNames: ['Type', 'Static', 'Codec'],
+    reservedTypeNames: ['Type', 'Static', 'Codec', 'Compile'],
   }
 }
 
@@ -260,5 +300,8 @@ function makeEffectAdapter(): ComponentAdapter {
     },
     cyclicTypeStyle: { optionalUndefined: true, readonlyArrays: true },
     reservedTypeNames: ['Schema', 'Effect'],
+    withRef(expr, ref) {
+      return isBareIdent(expr) ? expr : `${expr}.annotate({identifier:${JSON.stringify(ref)}})`
+    },
   }
 }

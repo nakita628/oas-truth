@@ -265,7 +265,7 @@ describe('makeSchemaDeclarations', () => {
     expect(schemaImportLine(arktype)).toBe("import { type } from 'arktype'")
     expect(schemaImportLine(arktype, undefined, true)).toBe("import { type, scope } from 'arktype'")
     expect(schemaImportLine(typebox, { exportTypes: true })).toBe(
-      "import { Type, type Static } from '@sinclair/typebox'",
+      "import { Type, type Static } from 'typebox'",
     )
   })
 
@@ -275,25 +275,63 @@ describe('makeSchemaDeclarations', () => {
         exportTypes: true,
       }),
     ).toBe(
-      "import { Type, type Static } from '@sinclair/typebox'\n\nexport const TagSchema=Type.String()\n\nexport type TagSchema=Static<typeof TagSchema>\n",
+      "import { Type, type Static } from 'typebox'\n\nexport const TagSchema=Type.String()\n\nexport type TagSchema=Static<typeof TagSchema>\n",
     )
   })
 
   it('returns nothing for no schemas', () => {
     expect(makeSchemaDeclarations({}, zod)).toStrictEqual([])
   })
-})
 
-function rewriteTypeboxImport(code: string) {
-  return code.replaceAll("'@sinclair/typebox'", "'typebox'")
-}
+  it('resolves a $ref to a later collider through the identifier map', () => {
+    const schemas = {
+      user: { type: 'string' },
+      User: { type: 'integer' },
+      'user-profile': {
+        type: 'object',
+        properties: { owner: { $ref: '#/components/schemas/User' } },
+      },
+    } as unknown as { readonly [k: string]: Schema }
+    const declarations = makeSchemaDeclarations(schemas, zod)
+    expect(declarations.map((d) => [d.name, d.varName])).toStrictEqual([
+      ['user', 'UserSchema'],
+      ['User', 'User2Schema'],
+      ['user-profile', 'UserProfileSchema'],
+    ])
+    expect(declarations[2]?.code).toBe(
+      'export const UserProfileSchema=z.object({owner:User2Schema.exactOptional()})',
+    )
+  })
+
+  it('reserves Compile so typeAlias key does not emit export type Compile', () => {
+    const code = makeSchemaDeclarations({ Compile: { type: 'string' } }, typebox, {
+      exportTypes: true,
+      typeAlias: 'key',
+    })[0]?.code
+    expect(code).toContain('export type CompileType=Static<typeof CompileSchema>')
+    expect(code).not.toContain('export type Compile=')
+  })
+
+  it('puts a TypeBox ref in the outermost builder when ref is requested', () => {
+    expect(
+      makeSchemaDeclarations({ Tag: { type: 'string', minLength: 1 } }, typebox, { ref: true })[0]
+        ?.code,
+    ).toBe('export const TagSchema=Type.String({ref:"Tag",minLength:1})')
+  })
+
+  it('applies withRef as an outer wrap when ref is requested', () => {
+    expect(makeSchemaDeclarations({ Tag: { type: 'string' } }, zod, { ref: true })[0]?.code).toBe(
+      'export const TagSchema=z.string().meta({ref:"Tag"})',
+    )
+  })
+})
 
 const tscBin = path.resolve(import.meta.dirname, '../../../node_modules/typescript/bin/tsc')
 
 function typecheck(fileName: string, source: string, extraArgs: readonly string[] = []) {
   fs.mkdirSync(tmpDir, { recursive: true })
   const file = path.join(tmpDir, fileName)
-  fs.writeFileSync(file, rewriteTypeboxImport(source))
+  fs.writeFileSync(file, source)
   try {
     execFileSync(
       tscBin,
@@ -418,7 +456,7 @@ describe('generated schemas type-check and run', () => {
   })
 
   it('typebox accepts a tree and rejects a bad child', async () => {
-    const source = `${rewriteTypeboxImport(makeSchemasCode({ schemas: selfCycle }, typebox))}
+    const source = `${makeSchemasCode({ schemas: selfCycle }, typebox)}
 import { Value } from 'typebox/value'
 export const ok = Value.Check(NodeSchema, { children: [] })
 export const bad = Value.Check(NodeSchema, { children: 'nope' })

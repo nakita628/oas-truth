@@ -42,9 +42,21 @@ type-checks under `exactOptionalPropertyTypes`. Arktype cycles become
 `import { type, scope } from 'arktype'`. `schemaImportLine` is the same function
 `makeSchemasCode` uses when the declarations stay in one file.
 
-```ts
-import { makeAdapter, makeSchemaDeclarations } from 'oas-truth'
+Every other component kind has the same split: `make<Kind>Declarations` returns `{ name,
+varName, fileName, code }` with no import line, and `make<Kind>Code` joins those bodies.
+`makeMediaTypesCode` covers `components.mediaTypes`. `makeSchemaIdentifiers` is the collision
+map (`user` / `User` → `User` / `User2`); `$ref`s resolve through it, so a later collider is
+`User2Schema`.
 
+`wrapSchema(expr, slot)` is slot-aware (`response-content`, `request-content`, `header`,
+`parameter`, `media-type`). TypeBox imports from `typebox` and reserves `Compile`. Pass
+`{ ref: true }` to `makeSchemaDeclarations` to register the OpenAPI key — TypeBox writes it
+into the outermost builder options; the other libraries use an outer wrap.
+
+```ts
+import { makeAdapter, makeSchemaDeclarations, makeSchemaIdentifiers } from 'oas-truth'
+
+const identifiers = makeSchemaIdentifiers(schemas)
 const declarations = makeSchemaDeclarations(schemas, makeAdapter('arktype'))
 // a cyclic file: import { type, scope } from 'arktype'
 // a non-cyclic file: import { type } from 'arktype'

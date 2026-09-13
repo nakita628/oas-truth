@@ -62,15 +62,43 @@ export function toIdentifierPascalCase(name: string) {
 }
 
 /**
+ * `name`, or the first of `name2`, `name3`, … not in `used`.
+ */
+export function claimName(name: string, used: ReadonlySet<string>, i = 2): string {
+  if (!used.has(name)) return name
+  return used.has(`${name}${i}`) ? claimName(name, used, i + 1) : `${name}${i}`
+}
+
+/**
+ * `toIdentifierPascalCase` folds `user` and `User` into one identifier; later
+ * colliders get a numeric suffix so no declaration is lost. The map is
+ * `OpenAPI key → identifier` (`user` → `User`, `User` → `User2`).
+ */
+export function makeSchemaIdentifiers(schemas: { readonly [k: string]: unknown }) {
+  return Object.keys(schemas).reduce(
+    (acc, key) => acc.set(key, claimName(toIdentifierPascalCase(key), new Set(acc.values()))),
+    new Map<string, string>(),
+  )
+}
+
+/** Lowercase the first character for a split-file name (`User` → `user`). */
+export function declarationFileName(ident: string) {
+  return `${ident.charAt(0).toLowerCase()}${ident.slice(1)}`
+}
+
+/**
  * Resolve a `#/components/schemas/...` `$ref` to its generated schema variable
  * identifier (`UserSchema`), or `undefined` when the ref does not point at a
- * component schema. Shared by ref-resolver and schema-replacements.
+ * component schema. Shared by ref-resolver and schema-replacements. Pass the
+ * collision map from `makeSchemaIdentifiers` so a later collider resolves to
+ * the suffixed name (`User` → `User2Schema`).
  */
-export function makeSchemaVarName(ref: string) {
+export function makeSchemaVarName(ref: string, identifiers?: ReadonlyMap<string, string>) {
   const match = ref.match(/^#\/components\/schemas\/(.+)$/u)
   const name = match?.[1]
   if (name === undefined) return undefined
-  return `${toIdentifierPascalCase(safeDecode(name))}Schema`
+  const key = safeDecode(name)
+  return `${identifiers?.get(key) ?? toIdentifierPascalCase(key)}Schema`
 }
 
 /**

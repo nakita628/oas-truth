@@ -1,18 +1,30 @@
 import { valueToCode } from '../../helper/ref-resolver.js'
 import type { Components } from '../../openapi/index.js'
-import { toIdentifierPascalCase } from '../../utils/index.js'
+import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
+import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import { joinDeclarations } from './declaration.js'
+
+export function makeLinksDeclarations(
+  components: Components,
+  options?: ComponentCodeOptions,
+): readonly ComponentDeclaration[] {
+  const { links } = components
+  if (!links) return []
+  const asConst = options?.readonly === true ? ' as const' : ''
+  return Object.entries(links).map(([name, link]) => {
+    const ident = toIdentifierPascalCase(name)
+    const varName = `${ident}Link`
+    return {
+      name,
+      varName,
+      fileName: declarationFileName(ident),
+      code: `export const ${varName}=${valueToCode(link)}${asConst}`,
+    }
+  })
+}
 
 export function makeLinksCode(components: Components, readonly: boolean) {
-  const { links } = components
-  if (!links) return ''
-  const entries = Object.entries(links)
-  if (entries.length === 0) return ''
-  const asConst = readonly ? ' as const' : ''
-  const exports = entries
-    .map(([name, link]) => {
-      const constName = `${toIdentifierPascalCase(name)}Link`
-      return `export const ${constName}=${valueToCode(link)}${asConst}`
-    })
-    .join(';')
-  return `${exports}\n`
+  return joinDeclarations(makeLinksDeclarations(components, { readonly }), {
+    trailingNewline: true,
+  })
 }

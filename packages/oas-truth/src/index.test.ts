@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import {
   makeAdapter,
+  makeMediaTypesCode,
+  makeParametersDeclarations,
   makeResponsesCode,
   makeSchemaDeclarations,
+  makeSchemaIdentifiers,
   makeSchemasCode,
   makeSecuritySchemesCode,
   parseOpenAPI,
@@ -57,5 +60,11 @@ describe('public API barrel', () => {
     expect(
       makeSchemaDeclarations({ Tag: { type: 'string' } }, makeAdapter('zod'))[0]?.importLine,
     ).toBe("import * as z from 'zod'")
+    expect([...makeSchemaIdentifiers({ user: {}, User: {} })]).toStrictEqual([
+      ['user', 'User'],
+      ['User', 'User2'],
+    ])
+    expect(makeParametersDeclarations({}, makeAdapter('zod'))).toStrictEqual([])
+    expect(typeof makeMediaTypesCode).toBe('function')
   })
 })

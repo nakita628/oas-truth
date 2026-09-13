@@ -3,13 +3,15 @@ import { isRecord, makeSchemaVarName } from '../utils/index.js'
 export function valueToCode(
   value: unknown,
   codeReplacements?: ReadonlyMap<unknown, string>,
+  identifiers?: ReadonlyMap<string, string>,
 ): string {
-  return encodeValue(value, codeReplacements, new Set())
+  return encodeValue(value, codeReplacements, identifiers, new Set())
 }
 
 function encodeValue(
   value: unknown,
   codeReplacements: ReadonlyMap<unknown, string> | undefined,
+  identifiers: ReadonlyMap<string, string> | undefined,
   seen: Set<object>,
 ): string {
   const replacement = codeReplacements?.get(value)
@@ -25,20 +27,20 @@ function encodeValue(
   if (Array.isArray(value)) {
     if (seen.has(value)) return 'null'
     seen.add(value)
-    const code = `[${value.map((v) => encodeValue(v, codeReplacements, seen)).join(',')}]`
+    const code = `[${value.map((v) => encodeValue(v, codeReplacements, identifiers, seen)).join(',')}]`
     seen.delete(value)
     return code
   }
   if (isRecord(value)) {
     if (seen.has(value)) return 'null'
     if ('$ref' in value && typeof value.$ref === 'string') {
-      const varName = makeSchemaVarName(value.$ref)
+      const varName = makeSchemaVarName(value.$ref, identifiers)
       if (varName) return varName
     }
     seen.add(value)
     const entries = Object.entries(value).map(([k, v]) => {
       const key = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/u.test(k) ? k : JSON.stringify(k)
-      return `${key}:${encodeValue(v, codeReplacements, seen)}`
+      return `${key}:${encodeValue(v, codeReplacements, identifiers, seen)}`
     })
     seen.delete(value)
     return `{${entries.join(',')}}`

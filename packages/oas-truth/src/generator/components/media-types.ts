@@ -4,20 +4,20 @@ import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.j
 import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
-export function makeParametersDeclarations(
+export function makeMediaTypesDeclarations(
   components: Components,
   adapter: ComponentAdapter,
   options?: ComponentCodeOptions,
 ): readonly ComponentDeclaration[] {
-  const { parameters } = components
-  if (!parameters) return []
-  return Object.entries(parameters).flatMap(([name, param]) => {
-    if (!param.schema) return []
-    const paramIn = param.in === 'query' || param.in === 'path' ? param.in : undefined
+  const { mediaTypes } = components
+  if (!mediaTypes) return []
+  return Object.entries(mediaTypes).flatMap(([name, media]) => {
+    if ('$ref' in media && media.$ref) return []
+    if (!('schema' in media) || !media.schema) return []
     const ident = toIdentifierPascalCase(name)
-    const varName = `${ident}ParamsSchema`
-    const raw = adapter.toExpression(param.schema, paramIn)
-    const expr = adapter.wrapSchema ? adapter.wrapSchema(raw, 'parameter') : raw
+    const varName = `${ident}MediaTypeSchema`
+    const raw = adapter.toExpression(media.schema)
+    const expr = adapter.wrapSchema ? adapter.wrapSchema(raw, 'media-type') : raw
     const typeExport =
       options?.exportTypes === true ? `\n\n${adapter.renderTypeInfer(varName)}` : ''
     return [
@@ -31,13 +31,13 @@ export function makeParametersDeclarations(
   })
 }
 
-export function makeParametersCode(
+export function makeMediaTypesCode(
   components: Components,
   adapter: ComponentAdapter,
   exportTypes?: boolean,
 ) {
   return joinDeclarations(
-    makeParametersDeclarations(
+    makeMediaTypesDeclarations(
       components,
       adapter,
       exportTypes === true ? { exportTypes: true } : undefined,

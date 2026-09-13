@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import {
   makeAdapter,
   makeResponsesCode,
+  makeSchemasCode,
   makeSecuritySchemesCode,
   parseOpenAPI,
   toPascalCase,
@@ -41,5 +42,12 @@ describe('public API barrel', () => {
   it('re-exports utils and ref-resolver', () => {
     expect(toPascalCase('created_at')).toBe('CreatedAt')
     expect(valueToCode({ $ref: '#/components/schemas/User' })).toBe('UserSchema')
+  })
+
+  it('re-exports the schemas builder', () => {
+    const components = { schemas: { Tag: { type: 'string' } } } as unknown as Components
+    expect(makeSchemasCode(components, makeAdapter('zod'))).toBe(
+      "import * as z from 'zod'\n\nexport const TagSchema=z.string()\n",
+    )
   })
 })

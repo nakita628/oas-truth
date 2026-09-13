@@ -13,6 +13,8 @@ pipefail
 pipx
 prefault
 stringbool
+subschema
+subschemas
 takibi
 textlint
 textlintrc

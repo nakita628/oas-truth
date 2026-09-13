@@ -1,6 +1,6 @@
 {
   "name": "oas-truth",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "oas-truth is a parser from OpenAPI and TypeSpec to a typed OpenAPI document",
   "keywords": [
     "openapi",

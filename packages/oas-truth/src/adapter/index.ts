@@ -11,6 +11,26 @@ export type ParamIn = 'query' | 'path'
 export type SchemaLib = 'zod' | 'valibot' | 'arktype' | 'effect' | 'typebox'
 
 /**
+ * Flags `renderImport` uses when the schemas builder needs more than the
+ * library's default line — Arktype `scope` for a `$ref` cycle, TypeBox
+ * `Static` when type aliases are exported.
+ */
+export type RenderImportOptions = {
+  readonly cyclic?: boolean
+  readonly exportTypes?: boolean
+}
+
+/**
+ * How this library's inferred object type differs from a Zod-shaped
+ * `prop?: T` literal, so the TS7022 helper matches `cyclicAnnotation` under
+ * `exactOptionalPropertyTypes`. Omitted properties keep the Zod form.
+ */
+export type CyclicTypeStyle = {
+  readonly optionalUndefined?: boolean
+  readonly readonlyArrays?: boolean
+}
+
+/**
  * The minimal surface the component generators consume from a validator
  * adapter. Each library's full adapter (carrying `toNamedExport`,
  * `annotateCyclic`, `objectField`, … for schema/contract generation) is a
@@ -26,16 +46,18 @@ export type SchemaLib = 'zod' | 'valibot' | 'arktype' | 'effect' | 'typebox'
  * Cycle handling lives next to each library: `wrapLazy` re-wraps a `$ref`
  * inside a strongly connected component (Zod, Valibot, Effect);
  * `cyclicAnnotation` is the TS7022 annotation on that declaration;
+ * `cyclicTypeStyle` is the helper type that annotation names;
  * `renderCyclic` post-processes the `$defs` container TypeBox and Arktype
  * need (`Type.Cyclic` is already the expression; Arktype extracts `scope`).
  */
 export type ComponentAdapter = {
-  readonly renderImport: () => string
+  readonly renderImport: (options?: RenderImportOptions) => string
   readonly toExpression: (schema: Schema, paramIn?: ParamIn) => string
   readonly renderTypeInfer: (constName: string) => string
   readonly wrapSchema?: (expr: string) => string
   readonly wrapLazy?: (varName: string) => string
   readonly cyclicAnnotation?: (typeName: string) => string
+  readonly cyclicTypeStyle?: CyclicTypeStyle
   readonly renderCyclic?: (
     varName: string,
     containerExpr: string,
@@ -158,6 +180,7 @@ function makeValibotAdapter(): ComponentAdapter {
     cyclicAnnotation(typeName) {
       return `v.GenericSchema<${typeName}>`
     },
+    cyclicTypeStyle: { optionalUndefined: true },
   }
 }
 
@@ -173,8 +196,10 @@ function makeArktypeAdapter(): ComponentAdapter {
         }),
       )
     },
-    renderImport() {
-      return "import { type } from 'arktype'"
+    renderImport(options) {
+      return options?.cyclic === true
+        ? "import { type, scope } from 'arktype'"
+        : "import { type } from 'arktype'"
     },
     renderTypeInfer(constName) {
       return `export type ${constName}=typeof ${constName}.infer`
@@ -196,8 +221,10 @@ function makeTypeboxAdapter(): ComponentAdapter {
         }),
       )
     },
-    renderImport() {
-      return "import { Type } from '@sinclair/typebox'"
+    renderImport(options) {
+      return options?.exportTypes === true
+        ? "import { Type, type Static } from '@sinclair/typebox'"
+        : "import { Type } from '@sinclair/typebox'"
     },
     renderTypeInfer(constName) {
       return `export type ${constName}=Static<typeof ${constName}>`
@@ -228,9 +255,10 @@ function makeEffectAdapter(): ComponentAdapter {
     wrapLazy(varName) {
       return `Schema.suspend(() => ${varName})`
     },
-    cyclicAnnotation() {
-      return 'Schema.Codec<any>'
+    cyclicAnnotation(typeName) {
+      return `Schema.Codec<${typeName}>`
     },
+    cyclicTypeStyle: { optionalUndefined: true, readonlyArrays: true },
     reservedTypeNames: ['Schema', 'Effect'],
   }
 }

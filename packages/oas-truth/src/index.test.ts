@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vite-plus/test'
 import {
   makeAdapter,
   makeResponsesCode,
+  makeSchemaDeclarations,
   makeSchemasCode,
   makeSecuritySchemesCode,
   parseOpenAPI,
+  schemaImportLine,
   toPascalCase,
   valueToCode,
 } from './index.js'
@@ -49,5 +51,11 @@ describe('public API barrel', () => {
     expect(makeSchemasCode(components, makeAdapter('zod'))).toBe(
       "import * as z from 'zod'\n\nexport const TagSchema=z.string()\n",
     )
+    expect(schemaImportLine(makeAdapter('arktype'), undefined, true)).toBe(
+      "import { type, scope } from 'arktype'",
+    )
+    expect(
+      makeSchemaDeclarations({ Tag: { type: 'string' } }, makeAdapter('zod'))[0]?.importLine,
+    ).toBe("import * as z from 'zod'")
   })
 })

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test'
 
 import { makeAdapter } from '../../adapter/index.js'
 import type { Components, Schema } from '../../openapi/index.js'
-import { makeSchemaDeclarations, makeSchemasCode } from './schemas.js'
+import { makeSchemaDeclarations, makeSchemasCode, schemaImportLine } from './schemas.js'
 
 const tmpDir = path.resolve(import.meta.dirname, '../../../tmp-schemas')
 
@@ -91,18 +91,21 @@ describe('makeSchemaDeclarations', () => {
         name: 'Tag',
         varName: 'TagSchema',
         fileName: 'tag',
+        importLine: "import * as z from 'zod'",
         code: 'export const TagSchema=z.string()\n\nexport type TagSchema=z.infer<typeof TagSchema>',
       },
       {
         name: 'Pet',
         varName: 'PetSchema',
         fileName: 'pet',
+        importLine: "import * as z from 'zod'",
         code: 'export const PetSchema=z.object({name:z.string(),tag:TagSchema.exactOptional()}).meta({description:"A pet"})\n\nexport type PetSchema=z.infer<typeof PetSchema>',
       },
       {
         name: 'Node',
         varName: 'NodeSchema',
         fileName: 'node',
+        importLine: "import * as z from 'zod'",
         code: 'type NodeType={"children"?:(NodeType)[]}\n\nexport const NodeSchema:z.ZodType<NodeType>=z.object({children:z.array(z.lazy(() => NodeSchema)).exactOptional()})\n\nexport type NodeSchema=z.infer<typeof NodeSchema>',
       },
     ])
@@ -112,7 +115,7 @@ describe('makeSchemaDeclarations', () => {
     [
       'valibot',
       'export const PetSchema=v.pipe(v.object({name:v.string(),tag:v.optional(TagSchema)}),v.description("A pet"))',
-      'type NodeType={"children"?:(NodeType)[]}\n\nexport const NodeSchema:v.GenericSchema<NodeType>=v.partial(v.object({children:v.array(v.lazy(() => NodeSchema))}))',
+      'type NodeType={"children"?:(NodeType)[]|undefined}\n\nexport const NodeSchema:v.GenericSchema<NodeType>=v.partial(v.object({children:v.array(v.lazy(() => NodeSchema))}))',
     ],
     [
       'typebox',
@@ -127,7 +130,7 @@ describe('makeSchemaDeclarations', () => {
     [
       'effect',
       'export const PetSchema=Schema.Struct({name:Schema.String,tag:Schema.optional(TagSchema)}).annotate({description:"A pet"})',
-      'export const NodeSchema:Schema.Codec<any>=Schema.Struct({children:Schema.optional(Schema.Array(Schema.suspend(() => NodeSchema)))})',
+      'type NodeType={"children"?:readonly (NodeType)[]|undefined}\n\nexport const NodeSchema:Schema.Codec<NodeType>=Schema.Struct({children:Schema.optional(Schema.Array(Schema.suspend(() => NodeSchema)))})',
     ],
   ] as const)('%s: declares a dependency and a self-cycle', (lib, pet, node) => {
     const schemas = {
@@ -180,8 +183,8 @@ describe('makeSchemaDeclarations', () => {
       'valibot',
       [
         'export const TagSchema=v.string()',
-        'type AType={"b"?:v.InferOutput<typeof BSchema>}\n\nexport const ASchema:v.GenericSchema<AType>=v.partial(v.object({b:v.lazy(() => BSchema)}))',
-        'type BType={"a"?:v.InferOutput<typeof ASchema>;"tag"?:v.InferOutput<typeof TagSchema>}\n\nexport const BSchema:v.GenericSchema<BType>=v.partial(v.object({a:v.lazy(() => ASchema),tag:TagSchema}))',
+        'type AType={"b"?:v.InferOutput<typeof BSchema>|undefined}\n\nexport const ASchema:v.GenericSchema<AType>=v.partial(v.object({b:v.lazy(() => BSchema)}))',
+        'type BType={"a"?:v.InferOutput<typeof ASchema>|undefined;"tag"?:v.InferOutput<typeof TagSchema>|undefined}\n\nexport const BSchema:v.GenericSchema<BType>=v.partial(v.object({a:v.lazy(() => ASchema),tag:TagSchema}))',
       ],
     ],
     [
@@ -204,8 +207,8 @@ describe('makeSchemaDeclarations', () => {
       'effect',
       [
         'export const TagSchema=Schema.String',
-        'export const ASchema:Schema.Codec<any>=Schema.Struct({b:Schema.optional(Schema.suspend(() => BSchema))})',
-        'export const BSchema:Schema.Codec<any>=Schema.Struct({a:Schema.optional(Schema.suspend(() => ASchema)),tag:Schema.optional(TagSchema)})',
+        'type AType={"b"?:Schema.Schema.Type<typeof BSchema>|undefined}\n\nexport const ASchema:Schema.Codec<AType>=Schema.Struct({b:Schema.optional(Schema.suspend(() => BSchema))})',
+        'type BType={"a"?:Schema.Schema.Type<typeof ASchema>|undefined;"tag"?:Schema.Schema.Type<typeof TagSchema>|undefined}\n\nexport const BSchema:Schema.Codec<BType>=Schema.Struct({a:Schema.optional(Schema.suspend(() => ASchema)),tag:Schema.optional(TagSchema)})',
       ],
     ],
   ] as const)('%s: a mutual cycle shares one container per member', (lib, expected) => {
@@ -234,6 +237,38 @@ describe('makeSchemaDeclarations', () => {
     )
   })
 
+  it('returns the arktype scope import on a cyclic declaration and type on the rest', () => {
+    const declarations = makeSchemaDeclarations({ Tag: { type: 'string' }, ...selfCycle }, arktype)
+    expect(
+      declarations.map((d) => [
+        d.name,
+        d.importLine,
+        d.code.includes('type('),
+        d.code.includes('scope('),
+      ]),
+    ).toStrictEqual([
+      ['Tag', "import { type } from 'arktype'", true, false],
+      ['Node', "import { type, scope } from 'arktype'", false, true],
+    ])
+  })
+
+  it('keeps the Zod-shaped helper when cyclicTypeStyle is literal', () => {
+    expect(
+      makeSchemaDeclarations(selfCycle, makeAdapter('valibot'), { cyclicTypeStyle: 'literal' })[0]
+        ?.code,
+    ).toBe(
+      'type NodeType={"children"?:(NodeType)[]}\n\nexport const NodeSchema:v.GenericSchema<NodeType>=v.partial(v.object({children:v.array(v.lazy(() => NodeSchema))}))',
+    )
+  })
+
+  it('schemaImportLine upgrades arktype and typebox from the adapter flags', () => {
+    expect(schemaImportLine(arktype)).toBe("import { type } from 'arktype'")
+    expect(schemaImportLine(arktype, undefined, true)).toBe("import { type, scope } from 'arktype'")
+    expect(schemaImportLine(typebox, { exportTypes: true })).toBe(
+      "import { Type, type Static } from '@sinclair/typebox'",
+    )
+  })
+
   it('imports Static when typebox exports types', () => {
     expect(
       makeSchemasCode({ schemas: { Tag: { type: 'string' } } } as never, typebox, {
@@ -255,7 +290,7 @@ function rewriteTypeboxImport(code: string) {
 
 const tscBin = path.resolve(import.meta.dirname, '../../../node_modules/typescript/bin/tsc')
 
-function typecheck(fileName: string, source: string) {
+function typecheck(fileName: string, source: string, extraArgs: readonly string[] = []) {
   fs.mkdirSync(tmpDir, { recursive: true })
   const file = path.join(tmpDir, fileName)
   fs.writeFileSync(file, rewriteTypeboxImport(source))
@@ -275,6 +310,7 @@ function typecheck(fileName: string, source: string) {
         'nodenext',
         '--target',
         'es2022',
+        ...extraArgs,
         file,
       ],
       { encoding: 'utf8', cwd: path.resolve(tmpDir, '..') },
@@ -284,6 +320,21 @@ function typecheck(fileName: string, source: string) {
     return error instanceof Error && 'stdout' in error ? String(error.stdout) : String(error)
   }
 }
+
+const exactOptional = ['--exactOptionalPropertyTypes', '--noUncheckedIndexedAccess'] as const
+
+const commentCycle = {
+  Comment: {
+    type: 'object',
+    required: ['body'],
+    properties: {
+      body: { type: 'string' },
+      replies: { type: 'array', items: { $ref: '#/components/schemas/Comment' } },
+    },
+  },
+} as const
+
+const helperLibs = ['zod', 'valibot', 'effect'] as const
 
 describe('generated schemas type-check and run', () => {
   beforeEach(() => {
@@ -316,6 +367,43 @@ describe('generated schemas type-check and run', () => {
   it('zod without the cyclic annotation fails TS7022', () => {
     const code = makeSchemasCode({ schemas: selfCycle }, zod).replace(':z.ZodType<NodeType>', '')
     expect(typecheck('zod-no-annotation.ts', code)).toContain('TS7022')
+  })
+
+  it.each(helperLibs)(
+    '%s: a self-cycle type-checks under exactOptionalPropertyTypes',
+    { timeout: 30_000 },
+    (lib) => {
+      const code = makeSchemasCode({ schemas: selfCycle }, makeAdapter(lib), {
+        exportTypes: true,
+      })
+      expect(typecheck(`${lib}-self-exact.ts`, code, exactOptional)).toBe('')
+    },
+  )
+
+  it.each(helperLibs)(
+    '%s: a mutual cycle type-checks under exactOptionalPropertyTypes',
+    { timeout: 30_000 },
+    (lib) => {
+      const code = makeSchemasCode({ schemas: mutualCycle }, makeAdapter(lib), {
+        exportTypes: true,
+      })
+      expect(typecheck(`${lib}-mutual-exact.ts`, code, exactOptional)).toBe('')
+    },
+  )
+
+  it('effect: a recursive Comment is Schema.Codec<CommentType> and rejects a bad body', () => {
+    const code = makeSchemasCode({ schemas: commentCycle }, makeAdapter('effect'), {
+      exportTypes: true,
+    })
+    expect(code).toContain('Schema.Codec<CommentType>')
+    expect(typecheck('effect-comment.ts', code, exactOptional)).toBe('')
+    expect(
+      typecheck(
+        'effect-comment-bad.ts',
+        `${code}\nconst _bad: CommentSchema = { body: 123 }\n`,
+        exactOptional,
+      ),
+    ).toContain('TS2322')
   })
 
   it('arktype accepts a tree and rejects a bad child', async () => {

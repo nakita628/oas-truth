@@ -203,8 +203,8 @@ importers:
   packages/oas-truth:
     dependencies:
       schema-to-library:
-        specifier: ^0.4.0
-        version: 0.4.0(@types/json-schema@7.0.15)(redis@6.2.1)(vite-plus@0.3.1(@types/node@26.5.1)(typescript@7.0.2)(yaml@2.9.0))
+        specifier: ^0.4.1
+        version: 0.4.1(@types/json-schema@7.0.15)(redis@6.2.1)(vite-plus@0.3.1(@types/node@26.5.1)(typescript@7.0.2)(yaml@2.9.0))
     devDependencies:
       '@apidevtools/swagger-parser':
         specifier: ^13.0.0
@@ -2785,8 +2785,8 @@ packages:
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
-  schema-to-library@0.4.0:
-    resolution: {integrity: sha512-jmg2WjDHvroAiekWwyzf3We6nlxVHt9IDGk+ORE92e0Y2yAqTRzlO92Lu2YIP0q0F358r8V8QXTbffqDp4KaZQ==}
+  schema-to-library@0.4.1:
+    resolution: {integrity: sha512-AhVEDN+Fp4yGA/mJJjRoOu/Qmjc7iES1kGGemGqWStVASw76+DOQIPWu8vSSwpJ0hDk8JnGGOqGRDNca35UNAQ==}
     hasBin: true
 
   secretlint@13.0.5:
@@ -5611,7 +5611,7 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  schema-to-library@0.4.0(@types/json-schema@7.0.15)(redis@6.2.1)(vite-plus@0.3.1(@types/node@26.5.1)(typescript@7.0.2)(yaml@2.9.0)):
+  schema-to-library@0.4.1(@types/json-schema@7.0.15)(redis@6.2.1)(vite-plus@0.3.1(@types/node@26.5.1)(typescript@7.0.2)(yaml@2.9.0)):
     dependencies:
       '@apidevtools/json-schema-ref-parser': 16.0.2(@types/json-schema@7.0.15)
       '@effect/platform-node': 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)

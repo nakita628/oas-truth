@@ -123,3 +123,12 @@ describe('toExpression coerces path/query params', () => {
     )
   })
 })
+
+describe('toExpression maps RFC 3339 date-time and time (valibot 0.4.1)', () => {
+  it.each([
+    ['date-time', 'v.pipe(v.string(),v.isoTimestamp())'],
+    ['time', 'v.pipe(v.string(),v.isoTimeSecond())'],
+  ] as const)('maps format %s', (format, expected) => {
+    expect(makeAdapter('valibot').toExpression({ type: 'string', format })).toBe(expected)
+  })
+})

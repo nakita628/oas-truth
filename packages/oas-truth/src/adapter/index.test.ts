@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import type { Schema } from '../openapi/index.js'
-import { makeAdapter } from './index.js'
+import { isParamStyle, makeAdapter } from './index.js'
 
 describe('renderImport', () => {
   it('zod', () => {
@@ -224,11 +224,48 @@ describe('toExpression coerces path/query params', () => {
   })
 })
 
-describe('toExpression maps RFC 3339 date-time and time (valibot 0.4.1)', () => {
+describe('toExpression maps RFC 3339 date-time and time with an offset (valibot)', () => {
   it.each([
-    ['date-time', 'v.pipe(v.string(),v.isoTimestamp())'],
-    ['time', 'v.pipe(v.string(),v.isoTimeSecond())'],
+    [
+      'date-time',
+      String.raw`v.pipe(v.string(),v.regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/))`,
+    ],
+    [
+      'time',
+      String.raw`v.pipe(v.string(),v.regex(/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?$/))`,
+    ],
   ] as const)('maps format %s', (format, expected) => {
     expect(makeAdapter('valibot').toExpression({ type: 'string', format })).toBe(expected)
+  })
+})
+
+describe('isParamStyle', () => {
+  it.each(['form', 'simple', 'deepObject', 'pipeDelimited'])('accepts %s', (style) => {
+    expect(isParamStyle(style)).toBe(true)
+  })
+
+  it('rejects a style the specification does not define', () => {
+    expect(isParamStyle('csv')).toBe(false)
+  })
+})
+
+describe('toExpression forwards the wire options', () => {
+  it('splits a pipeDelimited query array (arktype)', () => {
+    expect(
+      makeAdapter('arktype').toExpression({ type: 'array', items: { type: 'string' } }, 'query', {
+        style: 'pipeDelimited',
+        explode: false,
+      }),
+    ).toBe(
+      'type("unknown").pipe((data)=>{if(typeof data!==\'string\')return data;const text=data;return (text===\'\'?[]:text.split("|"))},type("unknown").pipe((data)=>(data===undefined||Array.isArray(data)?data:[data])).to("string[]"))',
+    )
+  })
+
+  it('leaves TypeBox output unchanged', () => {
+    const typebox = makeAdapter('typebox')
+    const schema: Schema = { type: 'array', items: { type: 'string' } }
+    expect(typebox.toExpression(schema, 'query', { style: 'pipeDelimited', explode: false })).toBe(
+      typebox.toExpression(schema, 'query'),
+    )
   })
 })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import {
+  isParamStyle,
   makeAdapter,
   makeMediaTypesCode,
   makeParametersDeclarations,
@@ -42,6 +43,10 @@ describe('public API barrel', () => {
     expect(makeSecuritySchemesCode(components, false)).toBe(
       'export const BearerSecurityScheme={type:"http",scheme:"bearer"}\n',
     )
+  })
+
+  it('re-exports isParamStyle', () => {
+    expect(isParamStyle('deepObject')).toBe(true)
   })
 
   it('re-exports utils and ref-resolver', () => {

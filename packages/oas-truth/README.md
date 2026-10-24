@@ -48,6 +48,12 @@ varName, fileName, code }` with no import line, and `make<Kind>Code` joins those
 map (`user` / `User` → `User` / `User2`); `$ref`s resolve through it, so a later collider is
 `User2Schema`.
 
+`makeParametersCode` reads every parameter as text: `query`, `path`, `header` and `cookie`
+values are coerced, and the parameter's `style`, `explode` and `allowEmptyValue` decide how the
+text is split (`form` with `explode: false` reads `1,2,3`, `deepObject` gathers `filter[key]`).
+`toExpression(schema, paramIn, { style, explode, allowEmptyValue })` takes the same options, and
+`isParamStyle` narrows a free-form `style` to one it reads. TypeBox ignores the three options.
+
 `wrapSchema(expr, slot)` is slot-aware (`response-content`, `request-content`, `header`,
 `parameter`, `media-type`). TypeBox imports from `typebox` and reserves `Compile`. Pass
 `{ ref: true }` to `makeSchemaDeclarations` to register the OpenAPI key — TypeBox writes it

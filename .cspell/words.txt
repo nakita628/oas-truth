@@ -5,7 +5,9 @@ automerged
 automerges
 cidrv
 hekireki
+injective
 injectively
+inlines
 msgpackr
 nakita
 openssf

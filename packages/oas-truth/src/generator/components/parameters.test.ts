@@ -37,7 +37,7 @@ describe('makeParametersCode', () => {
       },
     } as unknown as Components
     expect(makeParametersCode(components, valibot, true)).toBe(
-      "import * as v from 'valibot'\n\nexport const LimitParamsSchema=v.pipe(v.string(),v.transform(Number),v.number(),v.integer(),v.minValue(1))\n\nexport type LimitParamsSchema=v.InferOutput<typeof LimitParamsSchema>\n",
+      "import * as v from 'valibot'\n\nexport const LimitParamsSchema=v.pipe(v.string(),v.transform(Number),v.number(),v.safeInteger(),v.minValue(1))\n\nexport type LimitParamsSchema=v.InferOutput<typeof LimitParamsSchema>\n",
     )
   })
 
@@ -48,7 +48,7 @@ describe('makeParametersCode', () => {
       },
     } as unknown as Components
     expect(makeParametersCode(components, arktype, true)).toBe(
-      'import { type } from \'arktype\'\n\nexport const LimitParamsSchema=type("string.integer.parse").to("number.integer >= 1")\n\nexport type LimitParamsSchema=typeof LimitParamsSchema.infer\n',
+      'import { type } from \'arktype\'\n\nexport const LimitParamsSchema=type("string").pipe((data, ctx) => { const value = Number(data); return Number.isSafeInteger(value) ? value : ctx.error("an integer") }).to("number.integer >= 1")\n\nexport type LimitParamsSchema=typeof LimitParamsSchema.infer\n',
     )
   })
 
@@ -57,7 +57,7 @@ describe('makeParametersCode', () => {
       parameters: { Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersCode(components, effect, true)).toBe(
-      "import { Schema } from 'effect'\n\nexport const LimitParamsSchema=Schema.NumberFromString.check(Schema.isInt())\n\nexport type LimitParamsSchema=Schema.Schema.Type<typeof LimitParamsSchema>\n",
+      "import { Schema } from 'effect'\n\nexport const LimitParamsSchema=Schema.FiniteFromString.check(Schema.isInt())\n\nexport type LimitParamsSchema=Schema.Schema.Type<typeof LimitParamsSchema>\n",
     )
   })
 

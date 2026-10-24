@@ -6,7 +6,40 @@ import { schemaToZod } from 'schema-to-library/zod'
 
 import type { Schema } from '../openapi/index.js'
 
-export type ParamIn = 'query' | 'path'
+/**
+ * Where a value arrives as text: an OpenAPI parameter location, or `formData` for a field of
+ * a form body. schema-to-library coerces the value from text for every one of them.
+ */
+export type ParamIn = 'query' | 'path' | 'header' | 'cookie' | 'formData'
+
+/**
+ * A Parameter Object's `style`: how its text is split into an array or an object.
+ *
+ * @see https://spec.openapis.org/oas/v3.2.0.html#style-values
+ */
+export type ParamStyle =
+  | 'matrix'
+  | 'label'
+  | 'simple'
+  | 'form'
+  | 'spaceDelimited'
+  | 'pipeDelimited'
+  | 'deepObject'
+
+const PARAM_STYLES: readonly string[] = [
+  'matrix',
+  'label',
+  'simple',
+  'form',
+  'spaceDelimited',
+  'pipeDelimited',
+  'deepObject',
+] satisfies readonly ParamStyle[]
+
+/** Narrow a Parameter Object's free-form `style` to one schema-to-library reads. */
+export function isParamStyle(style: string): style is ParamStyle {
+  return PARAM_STYLES.includes(style)
+}
 
 export type SchemaLib = 'zod' | 'valibot' | 'arktype' | 'effect' | 'typebox'
 
@@ -21,9 +54,16 @@ export type SchemaSlot =
   | 'parameter'
   | 'media-type'
 
-/** Optional third argument to `toExpression` — TypeBox puts `ref` in builder options. */
+/**
+ * Optional third argument to `toExpression`. TypeBox puts `ref` in builder options. `style`,
+ * `explode` and `allowEmptyValue` are the parameter's own and apply with a `paramIn`; Zod,
+ * Valibot, Effect and Arktype read them, TypeBox ignores them.
+ */
 export type ToExpressionOptions = {
   readonly ref?: string
+  readonly style?: ParamStyle
+  readonly explode?: boolean
+  readonly allowEmptyValue?: boolean
 }
 
 /**
@@ -105,6 +145,16 @@ function toJsonSchema(schema: Schema): { readonly [k: string]: unknown } {
   return schema
 }
 
+/** The wire options schema-to-library reads, without an `undefined` member. */
+function wireOptions(paramIn: ParamIn | undefined, options: ToExpressionOptions | undefined) {
+  return {
+    ...(paramIn && { paramIn }),
+    ...(options?.style !== undefined && { style: options.style }),
+    ...(options?.explode !== undefined && { explode: options.explode }),
+    ...(options?.allowEmptyValue !== undefined && { allowEmptyValue: options.allowEmptyValue }),
+  }
+}
+
 /** Pull the bare expression out of a `export const X = <expr>` wrapper, then strip cross-schema refs. */
 function extractExpr(code: string, stripRefs: (expr: string) => string = (s) => s) {
   const joined = code
@@ -159,13 +209,13 @@ function renderArktypeCyclic(varName: string, containerExpr: string, externals: 
 
 function makeZodAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn) {
+    toExpression(schema, paramIn, options) {
       return extractExpr(
         schemaToZod(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
-          ...(paramIn && { paramIn }),
+          ...wireOptions(paramIn, options),
         }),
         stripZodLazy,
       )
@@ -190,13 +240,13 @@ function makeZodAdapter(): ComponentAdapter {
 
 function makeValibotAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn) {
+    toExpression(schema, paramIn, options) {
       return extractExpr(
         schemaToValibot(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
-          ...(paramIn && { paramIn }),
+          ...wireOptions(paramIn, options),
         }),
         stripValibotLazy,
       )
@@ -222,13 +272,13 @@ function makeValibotAdapter(): ComponentAdapter {
 
 function makeArktypeAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn) {
+    toExpression(schema, paramIn, options) {
       return extractExpr(
         schemaToArktype(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
-          ...(paramIn && { paramIn }),
+          ...wireOptions(paramIn, options),
         }),
       )
     },
@@ -256,7 +306,7 @@ function makeTypeboxAdapter(): ComponentAdapter {
           exportType: false,
           openapi: true,
           readonly: false,
-          ...(paramIn && { paramIn }),
+          ...wireOptions(paramIn, options),
           ...(options?.ref !== undefined && { ref: options.ref }),
         }),
       )
@@ -275,13 +325,13 @@ function makeTypeboxAdapter(): ComponentAdapter {
 
 function makeEffectAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn) {
+    toExpression(schema, paramIn, options) {
       return extractExpr(
         schemaToEffect(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
-          ...(paramIn && { paramIn }),
+          ...wireOptions(paramIn, options),
         }),
         stripEffectSuspend,
       )

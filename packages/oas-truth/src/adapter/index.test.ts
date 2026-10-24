@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import type { Schema } from '../openapi/index.js'
-import { makeAdapter } from './index.js'
+import { isParamStyle, makeAdapter } from './index.js'
 
 describe('renderImport', () => {
   it('zod', () => {
@@ -236,5 +236,36 @@ describe('toExpression maps RFC 3339 date-time and time with an offset (valibot)
     ],
   ] as const)('maps format %s', (format, expected) => {
     expect(makeAdapter('valibot').toExpression({ type: 'string', format })).toBe(expected)
+  })
+})
+
+describe('isParamStyle', () => {
+  it.each(['form', 'simple', 'deepObject', 'pipeDelimited'])('accepts %s', (style) => {
+    expect(isParamStyle(style)).toBe(true)
+  })
+
+  it('rejects a style the specification does not define', () => {
+    expect(isParamStyle('csv')).toBe(false)
+  })
+})
+
+describe('toExpression forwards the wire options', () => {
+  it('splits a pipeDelimited query array (arktype)', () => {
+    expect(
+      makeAdapter('arktype').toExpression({ type: 'array', items: { type: 'string' } }, 'query', {
+        style: 'pipeDelimited',
+        explode: false,
+      }),
+    ).toBe(
+      'type("unknown").pipe((data)=>{if(typeof data!==\'string\')return data;const text=data;return (text===\'\'?[]:text.split("|"))},type("unknown").pipe((data)=>(data===undefined||Array.isArray(data)?data:[data])).to("string[]"))',
+    )
+  })
+
+  it('leaves TypeBox output unchanged', () => {
+    const typebox = makeAdapter('typebox')
+    const schema: Schema = { type: 'array', items: { type: 'string' } }
+    expect(typebox.toExpression(schema, 'query', { style: 'pipeDelimited', explode: false })).toBe(
+      typebox.toExpression(schema, 'query'),
+    )
   })
 })

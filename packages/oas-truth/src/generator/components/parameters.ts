@@ -1,4 +1,5 @@
 import type { ComponentAdapter } from '../../adapter/index.js'
+import { isParamStyle } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
 import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
@@ -13,10 +14,13 @@ export function makeParametersDeclarations(
   if (!parameters) return []
   return Object.entries(parameters).flatMap(([name, param]) => {
     if (!param.schema) return []
-    const paramIn = param.in === 'query' || param.in === 'path' ? param.in : undefined
     const ident = toIdentifierPascalCase(name)
     const varName = `${ident}ParamsSchema`
-    const raw = adapter.toExpression(param.schema, paramIn)
+    const raw = adapter.toExpression(param.schema, param.in, {
+      ...(param.style !== undefined && isParamStyle(param.style) && { style: param.style }),
+      ...(param.explode !== undefined && { explode: param.explode }),
+      ...(param.allowEmptyValue !== undefined && { allowEmptyValue: param.allowEmptyValue }),
+    })
     const expr = adapter.wrapSchema ? adapter.wrapSchema(raw, 'parameter') : raw
     const typeExport =
       options?.exportTypes === true ? `\n\n${adapter.renderTypeInfer(varName)}` : ''

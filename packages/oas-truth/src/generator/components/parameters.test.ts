@@ -70,12 +70,89 @@ describe('makeParametersCode', () => {
     )
   })
 
-  it('does not coerce a non-path/query (header) param', () => {
+  it('coerces a header param', () => {
     const components = {
       parameters: { Trace: { name: 'trace', in: 'header', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersCode(components, zod)).toBe(
-      "import * as z from 'zod'\n\nexport const TraceParamsSchema=z.int()\n",
+      "import * as z from 'zod'\n\nexport const TraceParamsSchema=z.coerce.number().int()\n",
+    )
+  })
+
+  it('coerces a cookie param', () => {
+    const components = {
+      parameters: { Session: { name: 'session', in: 'cookie', schema: { type: 'boolean' } } },
+    } as unknown as Components
+    expect(makeParametersCode(components, zod)).toBe(
+      "import * as z from 'zod'\n\nexport const SessionParamsSchema=z.stringbool()\n",
+    )
+  })
+
+  it('splits a form param with explode: false on commas', () => {
+    const components = {
+      parameters: {
+        Ids: {
+          name: 'ids',
+          in: 'query',
+          style: 'form',
+          explode: false,
+          schema: { type: 'array', items: { type: 'integer' } },
+        },
+      },
+    } as unknown as Components
+    expect(makeParametersCode(components, zod)).toBe(
+      "import * as z from 'zod'\n\nexport const IdsParamsSchema=z.preprocess((val)=>{if(typeof val!=='string')return val;const text=val;return (text===''?[]:text.split(\",\"))},z.preprocess((val)=>(val===undefined||Array.isArray(val)?val:[val]),z.array(z.coerce.number().int())))\n",
+    )
+  })
+
+  it('gathers a deepObject param from its bracketed keys', () => {
+    const components = {
+      parameters: {
+        Filter: {
+          name: 'filter',
+          in: 'query',
+          style: 'deepObject',
+          explode: true,
+          schema: { type: 'object', properties: { q: { type: 'string' } } },
+        },
+      },
+    } as unknown as Components
+    expect(makeParametersCode(components, valibot)).toBe(
+      "import * as v from 'valibot'\n\nexport const FilterParamsSchema=v.pipe(v.unknown(),v.transform((input)=>{if(typeof input!=='object'||input===null||Array.isArray(input))return input;const out=Object.entries(input).reduce<{[k:string]:unknown}>((acc,[key,value])=>{const name=/^[^[\\]]+\\[([^\\]]+)\\]$/u.exec(key)?.[1];return name===undefined?acc:{...acc,[name]:value}},{});return Object.keys(out).length>0?out:input}),v.partial(v.object({q:v.string()})))\n",
+    )
+  })
+
+  it('reads an empty value as absent with allowEmptyValue', () => {
+    const components = {
+      parameters: {
+        Flag: { name: 'flag', in: 'query', allowEmptyValue: true, schema: { type: 'string' } },
+      },
+    } as unknown as Components
+    expect(makeParametersCode(components, zod)).toBe(
+      "import * as z from 'zod'\n\nexport const FlagParamsSchema=z.preprocess((val)=>(val===''?undefined:val),z.string())\n",
+    )
+  })
+
+  it('ignores a style schema-to-library does not know', () => {
+    const components = {
+      parameters: {
+        Ids: {
+          name: 'ids',
+          in: 'path',
+          style: 'unknown',
+          schema: { type: 'array', items: { type: 'integer' } },
+        },
+      },
+    } as unknown as Components
+    expect(makeParametersCode(components, zod)).toBe(
+      makeParametersCode(
+        {
+          parameters: {
+            Ids: { name: 'ids', in: 'path', schema: { type: 'array', items: { type: 'integer' } } },
+          },
+        },
+        zod,
+      ),
     )
   })
 

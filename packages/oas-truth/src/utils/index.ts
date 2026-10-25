@@ -44,7 +44,7 @@ function encodeNonAscii(name: string) {
 
 /**
  * Convert a name to a valid PascalCase TypeScript identifier. Mirrors
- * schema-to-library's `toIdentifierPascalCase` so reference identifiers match
+ * schema-truth's `toIdentifierPascalCase` so reference identifiers match
  * the component declaration names it emits. Non-ASCII names are encoded
  * injectively so distinct names never collide.
  */

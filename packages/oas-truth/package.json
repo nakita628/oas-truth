@@ -34,7 +34,7 @@
     "test": "vp test"
   },
   "dependencies": {
-    "schema-to-library": "^0.7.0"
+    "schema-truth": "^0.7.0"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "^13.1.0",

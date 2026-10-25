@@ -1,5 +1,5 @@
 ---
-description: Step-by-step playbooks for the recurring tasks here — adding a component builder, supporting a validator library, fixing generated output, bumping schema-to-library or TypeSpec, clearing a lint failure, adding a lint rule, and releasing. Read this when starting any of those.
+description: Step-by-step playbooks for the recurring tasks here — adding a component builder, supporting a validator library, fixing generated output, bumping schema-truth or TypeSpec, clearing a lint failure, adding a lint rule, and releasing. Read this when starting any of those.
 alwaysApply: false
 ---
 
@@ -22,7 +22,7 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 
 ## Support another validator library
 
-1. Check that schema-to-library emits it (`schema-to-library/<lib>`); oas-truth does not generate
+1. Check that schema-truth emits it (`schema-truth/<lib>`); oas-truth does not generate
    validator code of its own.
 2. Add the name to `SchemaLib` in `src/adapter/index.ts`; the `ADAPTERS` map then fails to
    compile until the adapter exists.
@@ -37,13 +37,13 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 2. Find the layer that owns the mistake — the model (`openapi/`), a name (`utils/`), the library
    bridge (`adapter/`), value or schema rendering (`helper/`), or the builder
    (`generator/components/`) — and fix it there, not downstream.
-3. If the mistake is in schema-to-library's output, fix it there and bump it here; do not patch
+3. If the mistake is in schema-truth's output, fix it there and bump it here; do not patch
    its output with string surgery beyond what `extractExpr` and the `strip*Lazy` helpers already
    do.
 4. Check whether sibling builders or the other libraries have the same mistake.
 5. Say in the report that every consumer's output changes with it.
 
-## Bump schema-to-library
+## Bump schema-truth
 
 1. Update the range in `packages/oas-truth/package.json`, then `pnpm install`.
 2. `pnpm test`. Every changed expectation is a change in what consumers generate: read each

@@ -227,7 +227,7 @@ importers:
 
   packages/oas-truth:
     dependencies:
-      schema-to-library:
+      schema-truth:
         specifier: ^0.7.0
         version: 0.7.0(@types/json-schema@7.0.15)(redis@6.2.1)(vite-plus@1.4.0(@types/node@26.6.5)(@vitest/ui@5.0.5)(typescript@7.0.2)(yaml@2.9.0))
     devDependencies:
@@ -2808,8 +2808,8 @@ packages:
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
 
-  schema-to-library@0.7.0:
-    resolution: {integrity: sha512-MX1p5J0UtiqSSjvclJRQ44+VbJQ/DjSTjbCJyGDq/sXw2I0bNUtsNlSBBBuokqTX3tznb+4bjLRulok5FFMZDw==}
+  schema-truth@0.7.0:
+    resolution: {integrity: sha512-rPa49rqA6bBZ9nUE2A8Wd19jQjzze+FnWTuLI0+MRviyJtMhMB8VijST/J5n71Q0wI+OmvrK9tZdtCPFswNi2g==}
     hasBin: true
 
   secretlint@13.0.7:
@@ -5716,7 +5716,7 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  schema-to-library@0.7.0(@types/json-schema@7.0.15)(redis@6.2.1)(vite-plus@1.4.0(@types/node@26.6.5)(@vitest/ui@5.0.5)(typescript@7.0.2)(yaml@2.9.0)):
+  schema-truth@0.7.0(@types/json-schema@7.0.15)(redis@6.2.1)(vite-plus@1.4.0(@types/node@26.6.5)(@vitest/ui@5.0.5)(typescript@7.0.2)(yaml@2.9.0)):
     dependencies:
       '@apidevtools/json-schema-ref-parser': 16.0.5(@types/json-schema@7.0.15)
       '@effect/platform-node': 4.0.5(effect@4.0.5)(redis@6.2.1)

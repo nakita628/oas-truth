@@ -1,14 +1,14 @@
-import { schemaToArktype } from 'schema-to-library/arktype'
-import { schemaToEffect } from 'schema-to-library/effect'
-import { schemaToTypebox } from 'schema-to-library/typebox'
-import { schemaToValibot } from 'schema-to-library/valibot'
-import { schemaToZod } from 'schema-to-library/zod'
+import { schemaToArktype } from 'schema-truth/arktype'
+import { schemaToEffect } from 'schema-truth/effect'
+import { schemaToTypebox } from 'schema-truth/typebox'
+import { schemaToValibot } from 'schema-truth/valibot'
+import { schemaToZod } from 'schema-truth/zod'
 
 import type { Schema } from '../openapi/index.js'
 
 /**
  * Where a value arrives as text: an OpenAPI parameter location, or `formData` for a field of
- * a form body. schema-to-library coerces the value from text for every one of them.
+ * a form body. schema-truth coerces the value from text for every one of them.
  */
 export type ParamIn = 'query' | 'path' | 'header' | 'cookie' | 'formData'
 
@@ -36,7 +36,7 @@ const PARAM_STYLES: readonly string[] = [
   'deepObject',
 ] satisfies readonly ParamStyle[]
 
-/** Narrow a Parameter Object's free-form `style` to one schema-to-library reads. */
+/** Narrow a Parameter Object's free-form `style` to one schema-truth reads. */
 export function isParamStyle(style: string): style is ParamStyle {
   return PARAM_STYLES.includes(style)
 }
@@ -137,7 +137,7 @@ function isBareIdent(expr: string) {
 }
 
 /**
- * Widen the rich `Schema` type to a bare JSON-Schema object for schema-to-library.
+ * Widen the rich `Schema` type to a bare JSON-Schema object for schema-truth.
  * `Schema` is not structurally assignable to its `JSONSchema` (e.g. `x-emailPattern`
  * literal unions differ), so this `as`-free bridge erases the incompatible members.
  */
@@ -145,7 +145,7 @@ function toJsonSchema(schema: Schema): { readonly [k: string]: unknown } {
   return schema
 }
 
-/** The wire options schema-to-library reads, without an `undefined` member. */
+/** The wire options schema-truth reads, without an `undefined` member. */
 function wireOptions(paramIn: ParamIn | undefined, options: ToExpressionOptions | undefined) {
   return {
     ...(paramIn && { paramIn }),

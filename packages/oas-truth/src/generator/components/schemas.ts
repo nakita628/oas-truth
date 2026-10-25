@@ -33,7 +33,7 @@ export type SchemasOptions = {
   readonly wrapDeclaration?: (expr: string, name: string) => string
   /**
    * Register the OpenAPI key on each declaration. TypeBox puts it in the
-   * outermost builder options via schema-to-library; the other libraries use
+   * outermost builder options via schema-truth; the other libraries use
    * `adapter.withRef` (an outer wrap). A bare identifier is left unchanged.
    */
   readonly ref?: boolean
@@ -99,7 +99,7 @@ function mapSchema(schema: Schema, fn: (node: Schema) => Schema): Schema {
 
 /**
  * `readonly` as the declarative `x-readonly` extension on every object and array,
- * which schema-to-library turns into each library's readonly form.
+ * which schema-truth turns into each library's readonly form.
  */
 function markReadonly(schema: Schema) {
   return mapSchema(schema, (node) => {
@@ -111,7 +111,7 @@ function markReadonly(schema: Schema) {
 /**
  * TypeBox and Arktype cannot express a cycle with standalone `const`s: the group
  * becomes one `Type.Cyclic(...)` / `scope(...)` container and each member selects
- * its entry. schema-to-library builds the container from a `$defs` document.
+ * its entry. schema-truth builds the container from a `$defs` document.
  */
 function rewriteCollisionRef(node: Schema, identifiers: ReadonlyMap<string, string>): Schema {
   if (typeof node.$ref !== 'string' || !node.$ref.startsWith('#/components/schemas/')) return node

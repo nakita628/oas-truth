@@ -30,7 +30,7 @@ Tests run on **vitest through vite-plus** and live next to what they cover
   the case covers. The string is the contract with the consumers; read every difference rather
   than updating the expectation to match.
 - An expectation changes only when the output is meant to change: a deliberate fix here, or an
-  upstream change in schema-to-library (as its move to Effect v4 changed
+  upstream change in schema-truth (as its move to Effect v4 changed
   `.pipe(Schema.int())` to `.check(Schema.isInt())`). Say which in the commit body.
 - Fixtures are OpenAPI fragments cast with `as unknown as Components`: the cast rules are off in
   tests so a fixture can stay minimal.

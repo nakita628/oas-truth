@@ -133,7 +133,7 @@ describe('makeParametersCode', () => {
     )
   })
 
-  it('ignores a style schema-to-library does not know', () => {
+  it('ignores a style schema-truth does not know', () => {
     const components = {
       parameters: {
         Ids: {

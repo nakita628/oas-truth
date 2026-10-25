@@ -1,6 +1,6 @@
 {
   "name": "oas-truth",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "oas-truth is a parser from OpenAPI and TypeSpec to a typed OpenAPI document",
   "keywords": [
     "openapi",
@@ -34,7 +34,7 @@
     "test": "vp test"
   },
   "dependencies": {
-    "schema-to-library": "^0.7.0"
+    "schema-truth": "^0.7.0"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "^13.1.0",

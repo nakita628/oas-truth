@@ -71,7 +71,7 @@ its comments explain every choice.
 - A package with a build script must be listed under `allowBuilds` in `pnpm-workspace.yaml`,
   allowed or refused with the reason.
 - The package's runtime `dependencies` are what every user installs (today only
-  `schema-to-library`). Adding one is a design decision — ask first. Tooling goes in
+  `schema-truth`). Adding one is a design decision — ask first. Tooling goes in
   `devDependencies` of the workspace that uses it; the repository-wide linters are root
   `devDependencies`.
 - A `peerDependencies` range must include the version in `devDependencies`, which is the one the
